@@ -79,7 +79,7 @@ void create_table_lines(SQLite::Database& db){
         "x2 INTEGER NOT NULL , "
         "y2 INTEGER NOT NULL , "
         "name TEXT NOT NULL UNIQUE , "
-        "mode TEXT ,"); // mode = "Right", "Left", "BothDirections" 
+        "mode TEXT )"); // mode = "Right", "Left", "BothDirections" 
     cout << "'lines' 테이블이 준비되었습니다.\n";
     return;
 }
@@ -87,7 +87,7 @@ void create_table_lines(SQLite::Database& db){
 bool insert_data_lines(SQLite::Database& db, CrossLine crossLine) {
     try {
         // SQL 인젝션 방지를 위해 Prepared Statement 사용
-        SQLite::Statement query(db, "INSERT INTO lines (indexNum, x1, y1, x2, y2, name, mode, leftMatrixNum, rightMatrixNum) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        SQLite::Statement query(db, "INSERT INTO lines (indexNum, x1, y1, x2, y2, name, mode) VALUES (?, ?, ?, ?, ?, ?, ?)");
         query.bind(1, crossLine.index);
         query.bind(2, crossLine.x1);
         query.bind(3, crossLine.y1);

@@ -79,17 +79,15 @@ void create_table_lines(SQLite::Database& db){
         "x2 INTEGER NOT NULL , "
         "y2 INTEGER NOT NULL , "
         "name TEXT NOT NULL UNIQUE , "
-        "mode TEXT ," // mode = "Right", "Left", "BothDirections"
-        "leftMatrixNum INTEGER, "
-        "rightMatrixNum INTEGER)"); 
+        "mode TEXT ,"); // mode = "Right", "Left", "BothDirections" 
     cout << "'lines' 테이블이 준비되었습니다.\n";
     return;
 }
 
-bool insert_data_lines(SQLite::Database& db, int indexNum ,int x1, int y1, int x2, int y2, string name, string mode, int leftMatrixNum, int rightMatrixNum) {
+bool insert_data_lines(SQLite::Database& db, int indexNum ,int x1, int y1, int x2, int y2, string name, string mode) {
     try {
         // SQL 인젝션 방지를 위해 Prepared Statement 사용
-        SQLite::Statement query(db, "INSERT INTO lines (indexNum, x1, y1, x2, y2, name, mode, leftMatrixNum, rightMatrixNum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        SQLite::Statement query(db, "INSERT INTO lines (indexNum, x1, y1, x2, y2, name, mode, leftMatrixNum, rightMatrixNum) VALUES (?, ?, ?, ?, ?, ?, ?)");
         query.bind(1, indexNum);
         query.bind(2, x1);
         query.bind(3, y1);
@@ -97,8 +95,6 @@ bool insert_data_lines(SQLite::Database& db, int indexNum ,int x1, int y1, int x
         query.bind(5, y2);
         query.bind(6, name);
         query.bind(7, mode);
-        query.bind(8, leftMatrixNum);
-        query.bind(9, rightMatrixNum);
         cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
         query.exec();
         
@@ -125,11 +121,9 @@ vector<CrossLine> select_all_data_lines(SQLite::Database& db){
             int y2 = query.getColumn("y2").getInt();
             string name = query.getColumn("name");
             string mode = query.getColumn("mode");
-            int leftMatrixNum = query.getColumn("leftMatrixNum").getInt();
-            int rightMatrixNum = query.getColumn("rightMatrixNum").getInt();
 
 
-            CrossLine line = {indexNum, x1, y1, x2, y2, name, mode, leftMatrixNum, rightMatrixNum};
+            CrossLine line = {indexNum, x1, y1, x2, y2, name, mode};
             lines.push_back(line);
         }
     } catch (const exception& e) {

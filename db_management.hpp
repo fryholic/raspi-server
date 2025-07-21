@@ -30,8 +30,6 @@ struct CrossLine{
     int y2;
     string name;
     string mode;
-    int leftMatrixNum;
-    int rightMatrixNum;
 };
 
 // 기준선 좌표
@@ -63,7 +61,7 @@ void delete_all_data_detections(SQLite::Database& db);
 
 void create_table_lines(SQLite::Database& db);
 
-bool insert_data_lines(SQLite::Database& db, int indexNum ,int x1, int y1, int x2, int y2, string name, string mode, int leftMatrixNum, int rightMatrixNum);
+bool insert_data_lines(SQLite::Database& db, int indexNum ,int x1, int y1, int x2, int y2, string name, string mode);
 
 vector<CrossLine> select_all_data_lines(SQLite::Database& db);
 

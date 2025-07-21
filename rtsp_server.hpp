@@ -11,3 +11,5 @@
 using namespace std;
 
 void rtsp_run(int argc, char *argv[]);
+
+void pi_rtsp_run(int argc, char *argv[]);

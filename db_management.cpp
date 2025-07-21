@@ -14,19 +14,19 @@ void create_table_detections(SQLite::Database& db)
     return;
 }
 
-bool insert_data_detections(SQLite::Database& db, vector<unsigned char> image, string timestamp) {
+bool insert_data_detections(SQLite::Database& db, Detection detection) {
     try {
         // SQL 인젝션 방지를 위해 Prepared Statement 사용
         SQLite::Statement query(db, "INSERT INTO detections (image, timestamp) VALUES (?, ?)");
-        query.bind(1, image.data(), image.size());
-        query.bind(2, timestamp);
+        query.bind(1, detection.imageBlob.data(), detection.imageBlob.size());
+        query.bind(2, detection.timestamp);
         cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
         query.exec();
         
-        cout << "데이터 추가: (시간: " << timestamp << ")" << endl;
+        cout << "데이터 추가: (시간: " << detection.timestamp << ")" << endl;
     } catch (const exception& e) {
         // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
-        cerr << "데이터 '" << timestamp << "' 추가 실패: " << e.what() << endl;
+        cerr << "데이터 '" << detection.timestamp << "' 추가 실패: " << e.what() << endl;
         return false;
     }
     return true;
@@ -84,24 +84,24 @@ void create_table_lines(SQLite::Database& db){
     return;
 }
 
-bool insert_data_lines(SQLite::Database& db, int indexNum ,int x1, int y1, int x2, int y2, string name, string mode) {
+bool insert_data_lines(SQLite::Database& db, CrossLine crossLine) {
     try {
         // SQL 인젝션 방지를 위해 Prepared Statement 사용
         SQLite::Statement query(db, "INSERT INTO lines (indexNum, x1, y1, x2, y2, name, mode, leftMatrixNum, rightMatrixNum) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        query.bind(1, indexNum);
-        query.bind(2, x1);
-        query.bind(3, y1);
-        query.bind(4, x2);
-        query.bind(5, y2);
-        query.bind(6, name);
-        query.bind(7, mode);
+        query.bind(1, crossLine.index);
+        query.bind(2, crossLine.x1);
+        query.bind(3, crossLine.y1);
+        query.bind(4, crossLine.x2);
+        query.bind(5, crossLine.y2);
+        query.bind(6, crossLine.name);
+        query.bind(7, crossLine.mode);
         cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
         query.exec();
         
-        cout << "데이터 추가: (인덱스: " << indexNum << ")" << endl;
+        cout << "데이터 추가: (인덱스: " << crossLine.index << ")" << endl;
     } catch (const exception& e) {
         // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
-        cerr << "데이터 '" << name << "' 추가 실패: " << e.what() << endl;
+        cerr << "데이터 '" << crossLine.name << "' 추가 실패: " << e.what() << endl;
         return false;
     }
     return true;
@@ -279,20 +279,20 @@ VerticalLineEquation select_data_verticalLineEquations(SQLite::Database& db, int
     return verticalLineEquation;
 }
 
-bool insert_data_verticalLineEquations(SQLite::Database& db, int index, double a, double b){
+bool insert_data_verticalLineEquations(SQLite::Database& db, VerticalLineEquation verticalLineEquation){
     try {
         // SQL 인젝션 방지를 위해 Prepared Statement 사용
         SQLite::Statement query(db, "INSERT INTO verticalLineEquations (indexNum, a, b) VALUES (?, ?, ?)");
-        query.bind(1, index);
-        query.bind(2, a);
-        query.bind(3, b);
+        query.bind(1, verticalLineEquation.index);
+        query.bind(2, verticalLineEquation.a);
+        query.bind(3, verticalLineEquation.b);
         cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
         query.exec();
         
-        cout << "데이터 추가: (인덱스: " << index << ")" << endl;
+        cout << "데이터 추가: (인덱스: " << verticalLineEquation.index << ")" << endl;
     } catch (const exception& e) {
         // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
-        cerr << "데이터 '" << index << "' 추가 실패: " << e.what() << endl;
+        cerr << "데이터 '" << verticalLineEquation.index << "' 추가 실패: " << e.what() << endl;
         return false;
     }
     return true;

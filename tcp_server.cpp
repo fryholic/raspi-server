@@ -473,21 +473,22 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                 string mode = received_json["data"].value("mode", "BothDirections");
                 string camera_type = received_json.value("camera_type","CCTV");
 
-                CrossLine newCrossLine = {index, x1*4, y1*4, x2*4, y2*4, name, mode};
+                CrossLine curlCrossLine = {index, x1*4, y1*4, x2*4, y2*4, name, mode};
+                CrossLine insertCrossLine = {index, x1, y1, x2, y2, name, mode};
 
                 bool mappingSuccess;
                 // --- DB 접근 시 Mutex로 보호 ---
                 {
                     std::lock_guard<std::mutex> lock(db_mutex);
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 시작 (Lock 획득)" << endl;
-                    mappingSuccess = insert_data_lines(db,index,x1,y1,x2,y2,name,mode);
+                    mappingSuccess = insert_data_lines(db,insertCrossLine);
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 완료 (Lock 해제)" << endl;
                 }
                 // --- 보호 끝 ---
 
                 if(camera_type == "CCTV"){
 
-                    putLines(newCrossLine);
+                    putLines(curlCrossLine);
 
                     json root;
                     root["request_id"] = 11;
@@ -601,7 +602,7 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                     {
                         std::lock_guard<std::mutex> lock(db_mutex);
                         cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 시작 (Lock 획득)" << endl;
-                        insert_data_lines(db,realLine.index,realLine.x1,realLine.y1,realLine.x2,realLine.y2,realLine.name,realLine.mode);
+                        insert_data_lines(db,realLine);
                         cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 완료 (Lock 해제)" << endl;
                     }
                 }
@@ -721,14 +722,14 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                 double a = received_json["data"].value("a", -1.0); // ax+b = y
                 double b = received_json["data"].value("b", -1.0);
 
-                // VerticalLineEquation verticalLineEquation = {index,a,b};
+                VerticalLineEquation verticalLineEquation = {index,a,b};
 
                 bool insertSuccess;
                 // --- DB 접근 시 Mutex로 보호 ---
                 {
                     std::lock_guard<std::mutex> lock(db_mutex);
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 시작 (Lock 획득)" << endl;
-                    insertSuccess = insert_data_verticalLineEquations(db,index,a,b);
+                    insertSuccess = insert_data_verticalLineEquations(db,verticalLineEquation);
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 완료 (Lock 해제)" << endl;
                 }
                 // --- 보호 끝 ---

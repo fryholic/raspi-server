@@ -598,7 +598,7 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
             } 
             
             else if(received_json.value("request_id", -1) == 4){
-                // 클라이언트에게 보낼 라인 전체 삭제 신호
+                // 클라이언트의 감지선, 기준선, 수직선 전체 삭제 신호
                 // getLines로 라인들 인덱스 들고오기
                 // cctv에선 들고온 인덱스로 deleteline(index) 반복 호출해서 삭제
                 // db에선 delete_all 호출해서 전부 삭제
@@ -623,6 +623,18 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 완료 (Lock 해제)" << endl;
                 }
                 // --- 보호 끝 ---
+                {
+                    std::lock_guard<std::mutex> lock(db_mutex);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 시작 (Lock 획득)" << endl;
+                    deleteSuccess = delete_all_data_baseLines(db);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 완료 (Lock 해제)" << endl;
+                }
+                {
+                    std::lock_guard<std::mutex> lock(db_mutex);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 시작 (Lock 획득)" << endl;
+                    deleteSuccess = delete_all_data_verticalLineEquations(db);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 완료 (Lock 해제)" << endl;
+                }
 
                 json root;
                 root["request_id"] = 13;

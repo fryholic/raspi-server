@@ -77,8 +77,13 @@ vector<BaseLine> select_all_data_baseLines(SQLite::Database& db);
 
 bool insert_data_baseLines(SQLite::Database& db,BaseLine baseline);
 
+bool delete_all_data_baseLines(SQLite::Database& db);
+
 void create_table_verticalLineEquations(SQLite::Database& db);
 
 VerticalLineEquation select_data_verticalLineEquations(SQLite::Database& db, int index);
 
 bool insert_data_verticalLineEquations(SQLite::Database& db, int index, double a, double b);
+
+bool delete_all_data_verticalLineEquations(SQLite::Database& db);
+

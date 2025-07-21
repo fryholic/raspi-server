@@ -237,6 +237,22 @@ bool insert_data_baseLines(SQLite::Database& db,BaseLine baseLine){
     return true;
 }
 
+bool delete_all_data_baseLines(SQLite::Database& db){
+    try {
+        SQLite::Statement query(db, "DELETE FROM baselines");
+        cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
+        int changes = query.exec();
+        cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes << endl;
+        if(changes == 0){
+            return false;
+        }
+    } catch (const exception& e) {
+        cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
+}
+
 ///////////////////////////////////////////////
 // VerticalLineEquation 테이블
 
@@ -283,6 +299,22 @@ bool insert_data_verticalLineEquations(SQLite::Database& db, int index, double a
     } catch (const exception& e) {
         // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
         cerr << "데이터 '" << index << "' 추가 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
+}
+
+bool delete_all_data_verticalLineEquations(SQLite::Database& db){
+    try {
+        SQLite::Statement query(db, "DELETE FROM verticalLineEquations");
+        cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
+        int changes = query.exec();
+        cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes << endl;
+        if(changes == 0){
+            return false;
+        }
+    } catch (const exception& e) {
+        cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
         return false;
     }
     return true;

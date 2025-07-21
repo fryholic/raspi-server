@@ -4,10 +4,14 @@
 
 #include "rtsp_server.hpp"
 
-#define DEFAULT_RTSP_PORT "8554"
-#define DEFAULT_MOUNT_POINT "/retransmit"
+#define CCTV_RTSP_PORT "8554"
+#define CCTV_MOUNT_POINT "/retransmit"
+
+#define PICAM_RTSP_PORT "8555"
+#define PICAM_MOUNT_POINT "/retransmit"
 
 void rtsp_run(int argc, char *argv[]){
+    gchar *port = (gchar *) CCTV_RTSP_PORT;
     // GStreamer 초기화 (초기화 실패시 에러 발생시킴)
     GError *error = NULL;
     gboolean initialized = gst_init_check(&argc,&argv,&error);
@@ -19,6 +23,7 @@ void rtsp_run(int argc, char *argv[]){
 
     // RTSP 서버 생성
     GstRTSPServer *server = gst_rtsp_server_new();
+    g_object_set(server, "service", port, NULL);
 
     // RTSP 마운트 포인트 획득
     // 마운트 포인트 : rtsp://<ip주소>:<포트번호>/<이 부분>r
@@ -37,7 +42,7 @@ void rtsp_run(int argc, char *argv[]){
     gst_rtsp_media_factory_set_launch(factory,pipeline_description);
 
     // RTSP 마운트 포인트 재설정 및 팩토리 추가
-    gst_rtsp_mount_points_add_factory(mounts, "/retransmit", factory);
+    gst_rtsp_mount_points_add_factory(mounts, CCTV_MOUNT_POINT, factory);
     g_object_unref(mounts);
 
     // RTSP 서버 시작
@@ -46,7 +51,7 @@ void rtsp_run(int argc, char *argv[]){
         return;
     }
 
-    cout << "RTSP middle server is running \n";
+    cout << "CCTV RTSP middle server is running on " << port << CCTV_MOUNT_POINT << "\n";
 
     // 메인 루프 실행
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
@@ -62,16 +67,10 @@ void pi_rtsp_run(int argc, char *argv[]){
     GstRTSPServer *server;
     GstRTSPMountPoints *mounts;
     GstRTSPMediaFactory *factory;
-    gchar *port = (gchar *) DEFAULT_RTSP_PORT;
+    gchar *port = (gchar *) PICAM_RTSP_PORT;
     gchar *source_rtsp_url;
 
-    // Check command line arguments
-    if (argc != 2) {
-        g_printerr("Usage: %s <source-rtsp-url>\n", argv[0]);
-        g_printerr("Example: %s rtsp://<pi-ip-address>:8554/stream\n", argv[0]);
-        return;
-    }
-    source_rtsp_url = "rtsp://~";
+    source_rtsp_url = "rtsp://192.168.0.65:8554/stream";
 
     // Initialize GStreamer
     gst_init(&argc, &argv);
@@ -102,7 +101,7 @@ void pi_rtsp_run(int argc, char *argv[]){
     gst_rtsp_media_factory_set_shared(factory, TRUE);
 
     // Add the factory to the mount points
-    gst_rtsp_mount_points_add_factory(mounts, DEFAULT_MOUNT_POINT, factory);
+    gst_rtsp_mount_points_add_factory(mounts, PICAM_MOUNT_POINT, factory);
     g_object_unref(mounts);
 
     // Attach the server to the main context
@@ -111,9 +110,7 @@ void pi_rtsp_run(int argc, char *argv[]){
         return;
     }
 
-    g_print("RTSP re-stream server is ready.\n");
-    g_print("Source URL: %s\n", source_rtsp_url);
-    g_print("Stream available at: rtsp://127.0.0.1:%s%s\n", port, DEFAULT_MOUNT_POINT);
+    cout << "PiCam RTSP middle server is running on " << PICAM_RTSP_PORT << PICAM_MOUNT_POINT <<"\n";
 
     // Run the main loop
     g_main_loop_run(loop);

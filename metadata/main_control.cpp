@@ -86,27 +86,6 @@ void control_board(int board_id, uint8_t cmd);
 
 // --- 보드제어 관련 함수 ---
 
-std::vector<uint8_t> encode_frame(uint8_t cmd, int board_id) {
-    uint8_t dst_mask = (1 << (board_id - 1));
-
-    std::vector<uint8_t> payload = {dst_mask, cmd};
-
-    std::vector<uint8_t> frame = {DLE, STX};
-    for (uint8_t b : payload) {
-        if (b == DLE) {
-            frame.push_back(DLE);
-            frame.push_back(DLE);
-        } else {
-            frame.push_back(b);
-        }
-    }
-    frame.push_back(DLE);
-    frame.push_back(ETX);
-    return frame;
-}
-
-
-// 보드 제어 함수
 void control_board(int board_id, uint8_t cmd) {
     std::string port = get_uart_port_for_board(board_id);
     if (port.empty()) {

@@ -3,7 +3,6 @@
 #include <string>
 #include <cstdint>
 
-
 #define DLE 0x10
 #define STX 0x02
 #define ETX 0x03
@@ -11,6 +10,7 @@
 #define NACK 0x55
 #define CMD_LCD_ON  0x01
 #define CMD_LCD_OFF 0x02
+#define CMD_SYNC_TIME 0x03 // 시간 프레임 추가!
 
 uint8_t reverse(uint8_t val, int bits);
 uint16_t crc16(const std::vector<uint8_t>& data);
@@ -23,6 +23,8 @@ public:
 
     void send_lcd_on();
     void send_lcd_off();
+
+    bool send_time_sync_from_system();
 
     // 확장: ACK/NACK 신뢰성 송신
     bool send_lcd_on_with_ack(int retries = 3, int timeout_ms = 1000);
@@ -37,6 +39,7 @@ private:
 
     // 확장: ACK/NACK 신뢰성 송신
     bool send_frame_with_ack(uint8_t command, int retries, int timeout_ms);
+    // board_control.h
+    std::vector<uint8_t> encode_frame(uint8_t command, const std::vector<uint8_t>& extra_data);
 
-    std::vector<uint8_t> encode_frame(uint8_t command);
 };

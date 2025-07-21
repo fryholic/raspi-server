@@ -462,7 +462,7 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
             } 
             
             else if(received_json.value("request_id", 2) == 2){
-                // 클라이언트의 가상 라인 좌표값 - 도트 매트릭스 매핑 요청(insert) 신호
+                // 클라이언트의 감지선 좌표값 삽입(insert) 신호
 
                 int index = received_json["data"].value("index", -1);
                 int x1 = received_json["data"].value("x1", -1);
@@ -471,33 +471,69 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                 int y2 = received_json["data"].value("y2", -1);
                 string name = received_json["data"].value("name", "name1");
                 string mode = received_json["data"].value("mode", "BothDirections");
-                int leftMatrixNum = received_json["data"].value("leftMatrixNum", -1);
-                int rightMatrixNum = received_json["data"].value("rightMatrixNum", -1);
+                string camera_type = received_json.value("camera_type","CCTV");
 
-                CrossLine newCrossLine = {index, x1*4, y1*4, x2*4, y2*4, name, mode, leftMatrixNum, rightMatrixNum};
-
-                putLines(newCrossLine);
+                CrossLine curlCrossLine = {index, x1*4, y1*4, x2*4, y2*4, name, mode};
+                CrossLine insertCrossLine = {index, x1, y1, x2, y2, name, mode};
 
                 bool mappingSuccess;
                 // --- DB 접근 시 Mutex로 보호 ---
                 {
                     std::lock_guard<std::mutex> lock(db_mutex);
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 시작 (Lock 획득)" << endl;
-                    mappingSuccess = insert_data_lines(db,index,x1,y1,x2,y2,name,mode,leftMatrixNum,rightMatrixNum);
+                    mappingSuccess = insert_data_lines(db,insertCrossLine);
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 완료 (Lock 해제)" << endl;
                 }
                 // --- 보호 끝 ---
 
-                json root;
-                root["request_id"] = 11;
-                root["mapping_success"] = (mappingSuccess == true)?1:0;
-                json_string = root.dump();
+                if(camera_type == "CCTV"){
+
+                    putLines(curlCrossLine);
+
+                    json root;
+                    root["request_id"] = 11;
+                    root["mapping_success"] = (mappingSuccess == true)?1:0;
+                    json_string = root.dump();
+                    
+                    uint32_t res_len = json_string.length();
+                    uint32_t net_res_len = htonl(res_len);
+                    sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
+                    sendAll(ssl, json_string.c_str(), res_len, 0);
+                } 
                 
-                uint32_t res_len = json_string.length();
-                uint32_t net_res_len = htonl(res_len);
-                sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
-                sendAll(ssl, json_string.c_str(), res_len, 0);
-   
+                else {
+
+                    vector<CrossLine> dbLines;
+                    {
+                        std::lock_guard<std::mutex> lock(db_mutex);
+                        cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 시작 (Lock 획득)" << endl;
+                        dbLines = select_all_data_lines(db);
+                        cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 완료 (Lock 해제)" << endl;
+                    }
+
+                    json root;
+                    root["request_id"] = 18;
+                    json data_array = json::array();
+                    for (const auto& line : dbLines) {
+                        json d_obj;
+                        d_obj["index"] = line.index;
+                        d_obj["x1"] = line.x1;
+                        d_obj["y1"] = line.y1;
+                        d_obj["x2"] = line.x2;
+                        d_obj["y2"] = line.y2;
+                        d_obj["name"] = line.name;
+                        d_obj["mode"] = line.mode;
+                        data_array.push_back(d_obj);
+                    }
+                    root["data"] = data_array;
+                    json_string = root.dump();
+                    
+                    uint32_t res_len = json_string.length();
+                    uint32_t net_res_len = htonl(res_len);
+                    sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
+                    sendAll(ssl, json_string.c_str(), res_len, 0);
+                }
+
                 cout << "[Thread " << std::this_thread::get_id() << "] 응답 전송 완료." << endl;
 
             } 
@@ -566,7 +602,7 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                     {
                         std::lock_guard<std::mutex> lock(db_mutex);
                         cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 시작 (Lock 획득)" << endl;
-                        insert_data_lines(db,realLine.index,realLine.x1,realLine.y1,realLine.x2,realLine.y2,realLine.name,realLine.mode,realLine.leftMatrixNum,realLine.rightMatrixNum);
+                        insert_data_lines(db,realLine);
                         cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 완료 (Lock 해제)" << endl;
                     }
                 }
@@ -583,8 +619,6 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                     d_obj["y2"] = line.y2;
                     d_obj["name"] = line.name;
                     d_obj["mode"] = line.mode;
-                    d_obj["right_matrix_num"] = line.rightMatrixNum;
-                    d_obj["left_matrix_num"] = line.leftMatrixNum;
                     data_array.push_back(d_obj);
                 }
                 root["data"] = data_array;
@@ -598,7 +632,7 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
             } 
             
             else if(received_json.value("request_id", -1) == 4){
-                // 클라이언트에게 보낼 라인 전체 삭제 신호
+                // 클라이언트의 감지선, 기준선, 수직선 전체 삭제 신호
                 // getLines로 라인들 인덱스 들고오기
                 // cctv에선 들고온 인덱스로 deleteline(index) 반복 호출해서 삭제
                 // db에선 delete_all 호출해서 전부 삭제
@@ -623,6 +657,18 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 완료 (Lock 해제)" << endl;
                 }
                 // --- 보호 끝 ---
+                {
+                    std::lock_guard<std::mutex> lock(db_mutex);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 시작 (Lock 획득)" << endl;
+                    deleteSuccess = delete_all_data_baseLines(db);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 완료 (Lock 해제)" << endl;
+                }
+                {
+                    std::lock_guard<std::mutex> lock(db_mutex);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 시작 (Lock 획득)" << endl;
+                    deleteSuccess = delete_all_data_verticalLineEquations(db);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 완료 (Lock 해제)" << endl;
+                }
 
                 json root;
                 root["request_id"] = 13;
@@ -676,14 +722,14 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                 double a = received_json["data"].value("a", -1.0); // ax+b = y
                 double b = received_json["data"].value("b", -1.0);
 
-                // VerticalLineEquation verticalLineEquation = {index,a,b};
+                VerticalLineEquation verticalLineEquation = {index,a,b};
 
                 bool insertSuccess;
                 // --- DB 접근 시 Mutex로 보호 ---
                 {
                     std::lock_guard<std::mutex> lock(db_mutex);
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 시작 (Lock 획득)" << endl;
-                    insertSuccess = insert_data_verticalLineEquations(db,index,a,b);
+                    insertSuccess = insert_data_verticalLineEquations(db,verticalLineEquation);
                     cout << "[Thread " << std::this_thread::get_id() << "] DB 삽입 완료 (Lock 해제)" << endl;
                 }
                 // --- 보호 끝 ---

@@ -14,8 +14,8 @@
 #define CMD_SYNC_TIME 0x03
 
 // 보드 ID: 1~4
-#define BOARD_ID 2
-#define DEVICE "/dev/ttyAMA2"
+#define BOARD_ID 1
+#define DEVICE "/dev/ttyAMA0"
 
 // --- CRC 계산 (STM32 방식과 일치) ---
 uint8_t reverse(uint8_t val, int bits) {
@@ -62,6 +62,9 @@ int open_serial(const char* device) {
     tty.c_cflag &= ~CSTOPB;
     tty.c_cflag &= ~CRTSCTS;
 
+    tty.c_cc[VMIN] = 0;
+    tty.c_cc[VTIME] = 10;
+
     tcsetattr(fd, TCSANOW, &tty);
     return fd;
 }
@@ -73,17 +76,17 @@ std::vector<uint8_t> encode_frame(uint8_t cmd, int board_id, const std::vector<u
     std::vector<uint8_t> payload = { dst_mask, cmd };
     payload.insert(payload.end(), extra_data.begin(), extra_data.end());
 
-    // ✅ 전체 payload로 CRC 계산
-    uint16_t crc = crc16(payload);  // ✅ 이 줄 수정
-
+    // CRC 대상은 payload 전체
+    uint16_t crc = crc16(payload);
     payload.push_back((crc >> 8) & 0xFF);
     payload.push_back(crc & 0xFF);
 
+    // 바이트 스터핑 포함된 전체 프레임 구성
     std::vector<uint8_t> frame = { DLE, STX };
     for (uint8_t b : payload) {
         if (b == DLE) {
             frame.push_back(DLE);
-            frame.push_back(DLE); // Byte stuffing
+            frame.push_back(DLE);  // Byte stuffing
         } else {
             frame.push_back(b);
         }
@@ -120,20 +123,19 @@ int main() {
 
         auto frame = encode_frame(CMD_SYNC_TIME, BOARD_ID, time_payload);
         write(fd, frame.data(), frame.size());
+        tcdrain(fd); // 송신 완료까지 대기
 
         std::cout << "[SENT] ";
         for (uint8_t b : frame)
             std::cout << std::hex << std::setw(2) << std::setfill('0') << int(b) << ' ';
         std::cout << std::endl;
 
-        sleep(5); // 5초 간격 전송
+        sleep(5);  // 5초마다 전송
     }
 
     close(fd);
     return 0;
 }
 
+/* g++ test1.cpp -o send_time --std=c++17*/
 
-/*
-g++ test1.cpp -o send_time --std=c++17
-*/

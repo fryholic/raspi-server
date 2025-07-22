@@ -51,6 +51,12 @@ struct VerticalLineEquation{
     double b;
 };
 
+struct Account{
+    string type; // "admin", "user"
+    string id;
+    string passwd;
+};
+
 void create_table_detections(SQLite::Database& db);
 
 bool insert_data_detections(SQLite::Database& db, Detection detection);
@@ -84,4 +90,10 @@ VerticalLineEquation select_data_verticalLineEquations(SQLite::Database& db, int
 bool insert_data_verticalLineEquations(SQLite::Database& db, VerticalLineEquation verticalLineEquation);
 
 bool delete_all_data_verticalLineEquations(SQLite::Database& db);
+
+void create_table_accounts(SQLite::Database& db);
+
+Account* select_data_accounts(SQLite::Database& db, string id, string passwd);
+
+bool insert_data_accounts(SQLite::Database& db, Account account);
 

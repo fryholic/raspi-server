@@ -781,6 +781,79 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                 sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
                 sendAll(ssl, json_string.c_str(), res_len, 0);
                 cout << "[Thread " << std::this_thread::get_id() << "] 응답 전송 완료." << endl;
+            } 
+            
+            else if(received_json.value("request_id", -1) == 8){
+                // 클라이언트 로그인 신호
+                // id, passwd select 이용해서 검사
+
+                string type = received_json["data"].value("type", "user");
+                string id = received_json["data"].value("id", "");
+                string passwd = received_json["data"].value("passwd", "");
+
+                // 비번 해싱 후 평문 비밀번호 메모리 초기화
+                // 아래 passwd 변수들 다 바꿔야함
+                // fill(passwd.begin(),passwd.end(),0);
+
+                Account* accountPtr;
+                {
+                    std::lock_guard<std::mutex> lock(db_mutex);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 시작 (Lock 획득)" << endl;
+                    accountPtr = select_data_accounts(db,id,passwd);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 완료 (Lock 해제)" << endl;
+                }
+
+                json root;
+                root["request_id"] = 19;
+                if(accountPtr == nullptr){
+                    root["login_success"] = 0;
+                } else {
+                    root["login_success"] = 1;
+                }
+                json_string = root.dump();
+
+                uint32_t res_len = json_string.length();
+                uint32_t net_res_len = htonl(res_len);
+                sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
+                sendAll(ssl, json_string.c_str(), res_len, 0);
+                cout << "[Thread " << std::this_thread::get_id() << "] 응답 전송 완료." << endl;
+            } 
+
+            else if(received_json.value("request_id", -1) == 9) {
+                // 클라이언트 회원가입 신호
+                // insert해서 id가 중복되면 회원가입 실패, 아니라면 성공
+
+                string type = received_json["data"].value("type", "user");
+                string id = received_json["data"].value("id", ""); 
+                string passwd = received_json["data"].value("passwd", "");
+
+                // 비번 해싱 후 평문 비밀번호 메모리 초기화
+                // 아래 passwd 변수들 다 바꿔야함
+                // fill(passwd.begin(),passwd.end(),0);
+
+                Account account = {type,id,passwd};
+                bool signUpOkay;
+                {
+                    std::lock_guard<std::mutex> lock(db_mutex);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 시작 (Lock 획득)" << endl;
+                    signUpOkay = insert_data_accounts(db,account);
+                    cout << "[Thread " << std::this_thread::get_id() << "] DB 조회 완료 (Lock 해제)" << endl;
+                }
+
+                json root;
+                root["request_id"] = 20;
+                if(signUpOkay == true){
+                    root["sign_up_success"] = 1;
+                } else {
+                    root["sign_up_success"] = 0;
+                }
+                json_string = root.dump();
+
+                uint32_t res_len = json_string.length();
+                uint32_t net_res_len = htonl(res_len);
+                sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
+                sendAll(ssl, json_string.c_str(), res_len, 0);
+                cout << "[Thread " << std::this_thread::get_id() << "] 응답 전송 완료." << endl;
             }
 
             cout << "JSON 송신 성공 : (" << json_string.size() << " 바이트):\n" << json_string.substr(0,300) << " # 이후 데이터 출력 생략"<< endl;

@@ -1,7 +1,25 @@
+CREATE TABLE IF NOT EXISTS lines (
+        indexNum INTEGER PRIMARY KEY NOT NULL, 
+        x1 INTEGER NOT NULL , 
+        y1 INTEGER NOT NULL , 
+        x2 INTEGER NOT NULL , 
+        y2 INTEGER NOT NULL , 
+        name TEXT NOT NULL UNIQUE , 
+        mode TEXT );
+
+CREATE TABLE IF NOT EXISTS baseLines (
+        indexNum INTEGER PRIMARY KEY,  
+        matrixNum1 INTEGER NOT NULL, 
+        x1 INTEGER NOT NULL, 
+        y1 INTEGER NOT NULL, 
+        matrixNum2 INTEGER NOT NULL, 
+        x2 INTEGER NOT NULL, 
+        y2 INTEGER NOT NULL);
+
 INSERT INTO lines (
-  indexNum, x1, y1, x2, y2, name, mode, leftMatrixNum, rightMatrixNum
+  indexNum, x1, y1, x2, y2, name, mode
 ) VALUES (
-  1, 663, 197, 858, 267, 'name1', 'Left', 2, 4
+  1, 663, 197, 858, 267, 'name1', 'Left'
 );
 -- CCTV에선 4배한 2653, 791, 3433, 1071로 처리
 
@@ -23,11 +41,11 @@ INSERT INTO baseLines (
 --   'https://192.168.0.137/opensdk/WiseAI/configuration/linecrossing' \
 --   -H 'Accept: application/json' \
 --   -H 'Content-Type: application/json' \
---   -H 'Cookie: TRACKID=0842ca6f0d90294ea7de995c40a4"aac6' \
+--   -H 'Cookie: TRACKID=0842ca6f0d90294ea7de995c40a4aac6' \
 --   -H 'Origin: https://192.168.0.137' \
 --   -H 'Referer: https://192.168.0.137/home/setup/opensdk/html/WiseAI/index.html' \
 --   --compressed \
---   --data-raw '{"channel":0,"enable":true,"line":[{"objectTypeFilter":["Person","Vehicle.Bicycle","Vehicle.Car","Vehicle.Motorcycle","Vehicle.Bus","Vehicle.Truck"],"name":"namsse1","index":1,"mode":"Right","lineCoordinates":[{"x":2653,"y":791},{"x":3433,"y":1071}]}]}'\
+--   --data-raw '{channel:0,enable:true,line:[{objectTypeFilter:[Person,Vehicle.Bicycle,Vehicle.Car,Vehicle.Motorcycle,Vehicle.Bus,Vehicle.Truck],name:namsse1,index:1,mode:Right,lineCoordinates:[{x:2653,y:791},{x:3433,y:1071}]}]}'\
 --   --insecure
 
 

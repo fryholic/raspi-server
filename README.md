@@ -12,8 +12,14 @@ OpenSSL용 서버 키 생성 가이드 :
 1. https://wldh0026.atlassian.net/wiki/spaces/C/pages/9666620/cert
 2. https://wldh0026.atlassian.net/wiki/spaces/C/pages/9863170/cert2
 
-빌드 및 실행
-```
-make
-```
-이후 생성된 .sh 스크립트 파일 실행하여 코드 동작
+
+빌드 및 실행 방법 :
+
+1. 필요 패키지 설치
+2. 서버 키 생성 (fullchain.crt, server.key)
+3. fullchain.crt 인증서를 클라이언트에게 전달
+4. 클라이언트 키 생성, Qt 리소스에 추가
+5. make
+6. ./server (TCP, RTSP 서버)를 먼저 실행
+7. ./metadata/control (메타데이터, 감지 처리 서버)를 새로운 터미널 열어서 실행
+

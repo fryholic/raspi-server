@@ -265,6 +265,7 @@ VerticalLineEquation select_data_verticalLineEquations(SQLite::Database& db, int
     try {
         SQLite::Statement query(db, "SELECT * FROM verticalLineEquations WHERE index = ?");
         cout << "Prepared SQL for select data vector: " << query.getExpandedSQL() << endl;
+        query.bind(1,index);
         query.exec();
 
         int indexNum = query.getColumn("indexNum").getInt();
@@ -309,6 +310,57 @@ bool delete_all_data_verticalLineEquations(SQLite::Database& db){
         }
     } catch (const exception& e) {
         cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
+}
+
+void create_table_accounts(SQLite::Database& db){
+    db.exec("CREATE TABLE IF NOT EXISTS accounts ("
+        "id TEXT PRIMARY KEY, "
+        "passwd TEXT NOT NULL, "
+        "type TEXT NOT NULL)");
+    cout << "'accounts' 테이블이 준비되었습니다.\n";
+    return;
+}
+
+Account* select_data_accounts(SQLite::Database& db, string id, string passwd){
+    Account* account = new Account;
+    try {
+        SQLite::Statement query(db, "SELECT * FROM accounts WHERE id = ? AND passwd = ?");
+        cout << "Prepared SQL for select data vector: " << query.getExpandedSQL() << endl;
+        query.bind(1,id);
+        query.bind(2,passwd);
+        query.exec();
+
+        string type = query.getColumn("type");
+        string id = query.getColumn("id");
+        string passwd = query.getColumn("passwd");
+
+        account->type = type;
+        account->id = id;
+        account->passwd = passwd;
+
+    } catch (const exception& e) {
+        cerr << "사용자 조회 실패: " << e.what() << endl;
+    }
+    return account;
+}
+
+bool insert_data_accounts(SQLite::Database& db, Account account){
+    try {
+        // SQL 인젝션 방지를 위해 Prepared Statement 사용
+        SQLite::Statement query(db, "INSERT INTO accounts (id, passwd, type) VALUES (?, ?, ?)");
+        query.bind(1, account.id);
+        query.bind(2, account.passwd);
+        query.bind(3, account.type);
+        cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
+        query.exec();
+        
+        cout << "데이터 추가: (id: " << account.id << ")" << endl;
+    } catch (const exception& e) {
+        // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
+        cerr << "데이터 '" << account.id<< "' 추가 실패: " << e.what() << endl;
         return false;
     }
     return true;

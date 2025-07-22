@@ -12,6 +12,7 @@
 #include <thread>
 #include <mutex>
 #include <stdlib.h>
+#include <algorithm>
 
 // POSIX 소켓 API 관련 헤더
 #include <sys/socket.h> // socket, bind, listen, accept

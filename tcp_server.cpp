@@ -401,7 +401,7 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
     create_table_lines(db);
     create_table_baseLines(db);
     create_table_verticalLineEquations(db);
-   
+    create_table_accounts(db);
 
     while (true) {
         uint32_t net_len;

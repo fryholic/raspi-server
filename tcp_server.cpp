@@ -783,7 +783,7 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
                 cout << "[Thread " << std::this_thread::get_id() << "] 응답 전송 완료." << endl;
             }
 
-            cout << "송신 성공 : (" << json_string.size() << " 바이트):\n" << json_string.substr(0,100) << " # 이후 데이터 출력 생략"<< endl;
+            cout << "JSON 송신 성공 : (" << json_string.size() << " 바이트):\n" << json_string.substr(0,300) << " # 이후 데이터 출력 생략"<< endl;
         } catch (const json::parse_error& e) {
             cerr << "[Thread " << std::this_thread::get_id() << "] JSON 파싱 에러: " << e.what() << endl;
         }

@@ -53,7 +53,7 @@ std::string get_uart_port_for_board(int board_id) {
 // --- 전역 상태 ---
 recursive_mutex data_mutex;
 const string RTSP_URL = "rtsp://admin:admin123@@192.168.0.137:554/0/onvif/profile2/media.smp";
-const string DB_FILE = "../server_log.db";
+const string DB_FILE = "/home/ckdmswo17/server/server_log.db";
 
 // DB에서 로드될 좌표 및 설정값
 vector<tuple<int, Point, int, Point>> base_line_pairs;
@@ -634,10 +634,10 @@ int main() {
         load_rule_lines(db);
 
         // 설정값 로드 확인
-        if (base_line_pairs.empty() || rule_lines.empty()) {
-            cerr << "[FATAL] Failed to load configuration from database. Check 'baseLines' and 'lines' tables." << endl;
-            return 1;
-        }
+        // if (base_line_pairs.empty() || rule_lines.empty()) {
+        //     cerr << "[FATAL] Failed to load configuration from database. Check 'baseLines' and 'lines' tables." << endl;
+        //     return 1;
+        // }
 
         // 메타데이터 처리 스레드 시작 (DB 객체 전달)
         metadata_thread(db);

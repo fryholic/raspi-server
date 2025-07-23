@@ -75,7 +75,7 @@ void pi_rtsp_run(int argc, char *argv[]) {
   gchar *port = (gchar *)PICAM_RTSP_PORT;
   gchar *source_rtsp_url;
 
-  source_rtsp_url = "rtsp://192.168.0.65:8554/stream";
+  source_rtsp_url = "rtsp://192.168.0.34:8554/stream";
 
   // Initialize GStreamer
   gst_init(&argc, &argv);

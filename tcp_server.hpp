@@ -2,43 +2,42 @@
 
 #pragma once
 
-#include <iostream>   // 표준 입출력 (std::cout, std::cerr)
-#include <string>     // 문자열 처리 (std::string)
-#include <vector>     // 동적 배열 (std::vector, 여기서는 사용되지 않지만 이전 컨텍스트에서 포함됨)
+#include <stdlib.h>
+
+#include <algorithm>
 #include <chrono>
+#include <cstdint>  // uint32_t
 #include <ctime>
 #include <iomanip>
-#include <cstdint> // uint32_t
-#include <thread>
+#include <iostream>  // 표준 입출력 (std::cout, std::cerr)
 #include <mutex>
-#include <stdlib.h>
-#include <algorithm>
+#include <string>  // 문자열 처리 (std::string)
+#include <thread>
+#include <vector>  // 동적 배열 (std::vector, 여기서는 사용되지 않지만 이전 컨텍스트에서 포함됨)
 
 // POSIX 소켓 API 관련 헤더
-#include <sys/socket.h> // socket, bind, listen, accept
-#include <netinet/in.h> // sockaddr_in
-#include <unistd.h>     // close
 #include <arpa/inet.h>  // inet_ntoa
-
 #include <curl/curl.h>
+#include <netinet/in.h>  // sockaddr_in
+#include <sys/socket.h>  // socket, bind, listen, accept
+#include <unistd.h>      // close
 
 // 오류 처리를 위한 추가 헤더
-#include <cstring>    // memset, strerror
-#include <cerrno>     // errno
-#include <system_error>  // strerror
+#include <cerrno>   // errno
+#include <cstring>  // memset, strerror
 #include <stdexcept>
+#include <system_error>  // strerror
 
 // json 처리를 위한 외부 헤더파일
 #include "json.hpp"
 
 // OpenSSL 관련 헤더
-#include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/ssl.h>
 
 extern SSL_CTX* ssl_ctx;
 
 #include "db_management.hpp"
-
 
 using namespace std;
 using json = nlohmann::json;

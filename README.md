@@ -7,6 +7,7 @@ sudo apt install libcurl4-openssl-dev
 
 (Optional) 부가 패키지 설치 명령어 :
 sudo apt install sqlite3 // sqlite db 수동 조작용
+sudo apt install clang-format // 코드 스타일 적용 자동화
 
 OpenSSL용 서버 키 생성 가이드 :
 1. https://wldh0026.atlassian.net/wiki/spaces/C/pages/9666620/cert

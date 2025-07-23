@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <iostream>
-#include <string>
-
 #include <gst/gst.h>
 #include <gst/rtsp-server/rtsp-server.h>
+
+#include <iostream>
+#include <string>
 
 using namespace std;
 

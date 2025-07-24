@@ -39,6 +39,11 @@ extern SSL_CTX* ssl_ctx;
 
 #include "db_management.hpp"
 
+#include "metadata_parser.hpp"
+#include <atomic>
+
+
+
 using namespace std;
 using json = nlohmann::json;
 
@@ -66,3 +71,5 @@ bool init_openssl();
 void cleanup_openssl();
 SSL_CTX* create_ssl_context();
 void configure_ssl_context(SSL_CTX* ctx);
+
+bool send_bboxes_to_client(SSL* ssl);

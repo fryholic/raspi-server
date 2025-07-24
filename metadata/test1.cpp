@@ -14,8 +14,8 @@
 #define CMD_SYNC_TIME 0x03
 
 // 보드 ID: 1~4
-#define BOARD_ID 1
-#define DEVICE "/dev/ttyAMA0"
+#define BOARD_ID 2
+#define DEVICE "/dev/ttyAMA2"
 
 // --- CRC 계산 (STM32 방식과 일치) ---
 uint8_t reverse(uint8_t val, int bits) {

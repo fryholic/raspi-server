@@ -9,8 +9,8 @@ clean:
 
 # TCP, RTSP 서버
 
-server: server.o rtsp_server.o tcp_server.o db_management.o
-	$(CXX) server.o rtsp_server.o tcp_server.o db_management.o -o server $(LDFLAGS)
+server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o
+	$(CXX) server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o -o server $(LDFLAGS)
 
 server.o: server.cpp
 	$(CXX) -c server.cpp $(CXXFLAGS)
@@ -23,6 +23,9 @@ tcp_server.o: tcp_server.cpp
 
 db_management.o : db_management.cpp
 	$(CXX) -c db_management.cpp -std=c++17
+
+metadata_parser.o: metadata_parser.cpp
+	$(CXX) -c $< -std=c++17
 
 # 메타데이터, 감지 처리 서버
 

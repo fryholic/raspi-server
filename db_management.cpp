@@ -207,8 +207,8 @@ vector<BaseLine> select_all_data_baseLines(SQLite::Database& db) {
       int x1 = query.getColumn("x1").getInt();
       int y1 = query.getColumn("y1").getInt();
       int matrixNum2 = query.getColumn("matrixNum2").getInt();
-      int x2 = query.getColumn("x1").getInt();
-      int y2 = query.getColumn("y1").getInt();
+      int x2 = query.getColumn("x2").getInt();
+      int y2 = query.getColumn("y2").getInt();
 
       BaseLine baseLine = {indexNum, matrixNum1, x1, y1, matrixNum2, x2, y2};
       baseLines.push_back(baseLine);
@@ -365,23 +365,11 @@ Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
     query.bind(1, id);
     query.bind(2, passwd);
 
-    cout << "[Debug] SQL Query: " << query.getExpandedSQL() << endl;
-    cout << "[Debug] Bound ID: " << id << endl;
-    cout << "[Debug] Bound Password: " << passwd << endl;
+    string id = query.getColumn("id");
+    string passwd = query.getColumn("passwd");
 
-    if (!query.executeStep()) {
-      cerr << "[Error] 사용자 조회 실패: 결과가 없습니다." << endl;
-      return nullptr;
-    }
-
-    string fetched_id = query.getColumn("id");
-    string fetched_passwd = query.getColumn("passwd");
-
-    cout << "[Debug] Fetched ID: " << fetched_id << endl;
-    cout << "[Debug] Fetched Password: " << fetched_passwd << endl;
-
-    account->id = fetched_id;
-    account->passwd = fetched_passwd;
+    account->id = id;
+    account->passwd = passwd;
 
   } catch (const exception& e) {
     cerr << "사용자 조회 실패: " << e.what() << endl;

@@ -40,8 +40,15 @@ extern SSL_CTX* ssl_ctx;
 // DB 관련 헤더
 #include "db_management.hpp"
 
+
 // Argon2 해싱을 위한 라이브러리
 #include <sodium.h>
+
+#include "metadata_parser.hpp"
+#include <atomic>
+
+
+
 
 using namespace std;
 using json = nlohmann::json;
@@ -71,6 +78,7 @@ void cleanup_openssl();
 SSL_CTX* create_ssl_context();
 void configure_ssl_context(SSL_CTX* ctx);
 
+
 /**
  * @brief Argon2id를 사용하여 비밀번호를 해싱합니다.
  *
@@ -88,3 +96,5 @@ string hash_password(const string& password);
  */
 bool verify_password(const string& hashed_password, const string& password);
 
+
+bool send_bboxes_to_client(SSL* ssl);

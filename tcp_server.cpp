@@ -6,6 +6,8 @@ OpenSSL 관련
 
 */
 
+std::mutex ssl_write_mutex;
+
 SSL_CTX* ssl_ctx = nullptr;
 
 // SSL 초기화 함수
@@ -427,6 +429,11 @@ string base64_encode(const vector<unsigned char>& in) {
 // --- 클라이언트 처리 스레드 함수 ---
 void handle_client(int client_socket, SQLite::Database& db,
                    std::mutex& db_mutex) {
+
+
+  // SSL 접근 안전
+  mutex ssl_write_mutex;
+
   // SSL 연결 설정
   SSL* ssl = SSL_new(ssl_ctx);
   if (!ssl) {
@@ -453,6 +460,13 @@ void handle_client(int client_socket, SQLite::Database& db,
   create_table_verticalLineEquations(db);
   create_table_accounts(db);
 
+
+  atomic<bool> bbox_push_enabled(false);
+  // BBox push 쓰레드
+  thread push_thread;
+
+
+
   while (true) {
     uint32_t net_len;
     if (!recvAll(ssl, reinterpret_cast<char*>(&net_len), sizeof(net_len))) {
@@ -476,6 +490,7 @@ void handle_client(int client_socket, SQLite::Database& db,
       printNowTimeKST();
       cout << " [Thread " << std::this_thread::get_id() << "] 수신 성공:\n"
            << received_json.dump(2) << endl;
+
 
       string json_string;
       if (received_json.value("request_id", -1) == 1) {
@@ -516,6 +531,16 @@ void handle_client(int client_socket, SQLite::Database& db,
 
         cout << "[Thread " << std::this_thread::get_id() << "] 응답 전송 완료."
              << endl;
+
+        json res = {{"request_id", 1}, {"result", "ok"}};
+        std::string res_str = res.dump();
+        uint32_t len = htonl(res_str.size());
+
+        {   // ✅ write 보호
+          std::lock_guard<std::mutex> lock(ssl_write_mutex);
+          sendAll(ssl, reinterpret_cast<const char*>(&len), sizeof(len), 0);
+          sendAll(ssl, res_str.c_str(), res_str.size(), 0);
+        }
       }
 
       else if (received_json.value("request_id", 2) == 2) {
@@ -848,7 +873,7 @@ void handle_client(int client_socket, SQLite::Database& db,
         // --- 보호 끝 ---
 
         json root;
-        root["request_id"] = 15;
+        root["request_id"] = 16;
         json data_array = json::array();
         for (const auto& baseLine : baseLines) {
           json d_obj;
@@ -964,6 +989,20 @@ void handle_client(int client_socket, SQLite::Database& db,
           sendAll(ssl, json_string.c_str(), res_len, 0);
           cout << "[응답] 회원가입 결과 전송 완료." << endl;
       }
+      else if (received_json.value("request_id", -1) == 20 && !bbox_push_enabled) {
+        bbox_push_enabled = true;
+        push_thread = std::thread([ssl, &bbox_push_enabled, &ssl_write_mutex]() {
+            while (bbox_push_enabled) {
+                send_bboxes_to_client(ssl);  // 기존 방식처럼 함수 호출로 통일
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            }
+        });
+      }
+
+      else if (received_json.value("request_id", -1) == 21 && bbox_push_enabled) {
+          bbox_push_enabled = false;
+          if (push_thread.joinable()) push_thread.join();
+      }
 
       cout << "JSON 송신 성공 : (" << json_string.size() << " 바이트):\n"
            << json_string.substr(0, 300) << " # 이후 데이터 출력 생략" << endl;
@@ -972,6 +1011,10 @@ void handle_client(int client_socket, SQLite::Database& db,
            << "] JSON 파싱 에러: " << e.what() << endl;
     }
   }
+
+  // 연결 종료 직전 정리
+  bbox_push_enabled = false;
+  if (push_thread.joinable()) push_thread.join();
 
   close(client_socket);
   printNowTimeKST();
@@ -1188,3 +1231,39 @@ bool verify_password(const string& hashed_password, const string& password) {
     cout << "[Debug] Password verification result: " << (result == 0 ? "Match" : "Mismatch") << endl;
     return result == 0;
 }
+
+
+
+// =======
+
+// 바운딩 박스 전송 함수
+bool send_bboxes_to_client(SSL* ssl) {
+    json bbox_array = json::array();
+    {
+        std::lock_guard<std::mutex> lock(bbox_mutex);
+        for (const BBox& box : latest_bboxes) {
+            json j = {
+                {"object_id", box.object_id},
+                {"type", box.type},
+                {"confidence", box.confidence},
+                {"left", box.left},
+                {"top", box.top},
+                {"right", box.right},
+                {"bottom", box.bottom}
+            };
+            bbox_array.push_back(j);
+        }
+    }
+    json response = {
+        {"response_id", 200},
+        {"bboxes", bbox_array}
+    };
+
+    std::string json_str = response.dump();
+    {
+        std::lock_guard<std::mutex> lock(ssl_write_mutex);
+        int ret = SSL_write(ssl, json_str.c_str(), json_str.length());
+        return ret > 0;
+    }
+}
+

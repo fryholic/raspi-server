@@ -848,7 +848,7 @@ void handle_client(int client_socket, SQLite::Database& db,
         // --- 보호 끝 ---
 
         json root;
-        root["request_id"] = 15;
+        root["request_id"] = 16;
         json data_array = json::array();
         for (const auto& baseLine : baseLines) {
           json d_obj;

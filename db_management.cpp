@@ -207,8 +207,8 @@ vector<BaseLine> select_all_data_baseLines(SQLite::Database& db) {
       int x1 = query.getColumn("x1").getInt();
       int y1 = query.getColumn("y1").getInt();
       int matrixNum2 = query.getColumn("matrixNum2").getInt();
-      int x2 = query.getColumn("x1").getInt();
-      int y2 = query.getColumn("y1").getInt();
+      int x2 = query.getColumn("x2").getInt();
+      int y2 = query.getColumn("y2").getInt();
 
       BaseLine baseLine = {indexNum, matrixNum1, x1, y1, matrixNum2, x2, y2};
       baseLines.push_back(baseLine);

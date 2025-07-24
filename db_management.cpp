@@ -344,21 +344,26 @@ void create_table_accounts(SQLite::Database& db) {
   db.exec(
       "CREATE TABLE IF NOT EXISTS accounts ("
       "id TEXT PRIMARY KEY, "
-      "passwd TEXT NOT NULL ");
+      "passwd TEXT NOT NULL)"
+  );
   cout << "'accounts' 테이블이 준비되었습니다.\n";
   return;
 }
 
 Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
+  cout << "[Debug] select_data_accounts called with ID: " << id << ", Password: " << passwd << endl;
+
   Account* account = new Account;
   try {
+    if (id.empty() || passwd.empty()) {
+      cerr << "[Error] ID 또는 비밀번호가 비어 있습니다." << endl;
+      return nullptr;
+    }
+
     SQLite::Statement query(
         db, "SELECT * FROM accounts WHERE id = ? AND passwd = ?");
-    cout << "Prepared SQL for select data vector: " << query.getExpandedSQL()
-         << endl;
     query.bind(1, id);
     query.bind(2, passwd);
-    query.exec();
 
     string id = query.getColumn("id");
     string passwd = query.getColumn("passwd");
@@ -368,13 +373,13 @@ Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
 
   } catch (const exception& e) {
     cerr << "사용자 조회 실패: " << e.what() << endl;
+    return nullptr;
   }
   return account;
 }
 
 bool insert_data_accounts(SQLite::Database& db, Account account) {
   try {
-    // SQL 인젝션 방지를 위해 Prepared Statement 사용
     SQLite::Statement query(
         db, "INSERT INTO accounts (id, passwd) VALUES (?, ?)");
     query.bind(1, account.id);
@@ -384,9 +389,31 @@ bool insert_data_accounts(SQLite::Database& db, Account account) {
 
     cout << "데이터 추가: (id: " << account.id << ")" << endl;
   } catch (const exception& e) {
-    // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
     cerr << "데이터 '" << account.id << "' 추가 실패: " << e.what() << endl;
     return false;
   }
   return true;
+}
+
+Account* get_account_by_id(SQLite::Database& db, const string& id) {
+    try {
+        // 오직 ID만으로 계정을 조회하는 SQL 쿼리
+        SQLite::Statement query(db, "SELECT id, passwd FROM accounts WHERE id = ?");
+        query.bind(1, id);
+
+        if (query.executeStep()) { // 행이 존재하는 경우 (사용자를 찾음)
+            // 동적으로 Account 객체를 생성하여 반환
+            Account* acc = new Account{
+                query.getColumn(0).getString(), // id
+                query.getColumn(1).getString()  // passwd (hashed)
+            };
+            return acc;
+        } else {
+            // 사용자를 찾지 못한 경우
+            return nullptr;
+        }
+    } catch (const std::exception& e) {
+        cerr << "[DB 에러] ID로 계정 조회 중 예외 발생: " << e.what() << endl;
+        return nullptr;
+    }
 }

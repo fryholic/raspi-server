@@ -98,3 +98,5 @@ void create_table_accounts(SQLite::Database& db);
 Account* select_data_accounts(SQLite::Database& db, string id, string passwd);
 
 bool insert_data_accounts(SQLite::Database& db, Account account);
+
+Account* get_account_by_id(SQLite::Database& db, const string& id);

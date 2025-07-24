@@ -37,10 +37,16 @@
 
 extern SSL_CTX* ssl_ctx;
 
+// DB 관련 헤더
 #include "db_management.hpp"
+
+
+// Argon2 해싱을 위한 라이브러리
+#include <sodium.h>
 
 #include "metadata_parser.hpp"
 #include <atomic>
+
 
 
 
@@ -71,5 +77,24 @@ bool init_openssl();
 void cleanup_openssl();
 SSL_CTX* create_ssl_context();
 void configure_ssl_context(SSL_CTX* ctx);
+
+
+/**
+ * @brief Argon2id를 사용하여 비밀번호를 해싱합니다.
+ *
+ * @param password 평문 비밀번호.
+ * @return 해싱된 비밀번호 문자열.
+ */
+string hash_password(const string& password);
+
+/**
+ * @brief Argon2id를 사용하여 비밀번호를 검증합니다.
+ *
+ * @param hashed_password 해싱된 비밀번호.
+ * @param password 평문 비밀번호.
+ * @return 비밀번호가 일치하면 true, 그렇지 않으면 false.
+ */
+bool verify_password(const string& hashed_password, const string& password);
+
 
 bool send_bboxes_to_client(SSL* ssl);

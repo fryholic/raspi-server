@@ -899,82 +899,95 @@ void handle_client(int client_socket, SQLite::Database& db,
       }
 
       else if (received_json.value("request_id", -1) == 8) {
-        // 클라이언트 로그인 신호
-        // id, passwd select 이용해서 검사
+          cout << "[로그인] 로그인 요청 수신" << endl;
+          string id = received_json["data"].value("id", "");
+          string passwd = received_json["data"].value("passwd", "");
 
-        string id = received_json["data"].value("id", "");
-        string passwd = received_json["data"].value("passwd", "");
+          // 1. 입력 값 유효성 검사
+          if (id.empty() || passwd.empty()) {
+              cerr << "[에러] 클라이언트가 보낸 ID 또는 비밀번호가 비어 있습니다." << endl;
+              // 클라이언트에게 실패 응답 전송 로직...
+              continue;
+          }
 
-        // 비번 해싱 후 평문 비밀번호 메모리 초기화
-        // 아래 passwd 변수들 다 바꿔야함
-        // fill(passwd.begin(),passwd.end(),0);
+          Account* accountPtr = nullptr;
+          {
+              std::lock_guard<std::mutex> lock(db_mutex);
+              cout << "[DB] ID로 계정 조회 시도 (ID: " << id << ")" << endl;
+              // 2. ID만으로 DB에서 계정 정보 조회 (구조 개선)
+              accountPtr = get_account_by_id(db, id);
+          }
 
-        Account* accountPtr;
-        {
-          std::lock_guard<std::mutex> lock(db_mutex);
-          cout << "[Thread " << std::this_thread::get_id()
-               << "] DB 조회 시작 (Lock 획득)" << endl;
-          accountPtr = select_data_accounts(db, id, passwd);
-          cout << "[Thread " << std::this_thread::get_id()
-               << "] DB 조회 완료 (Lock 해제)" << endl;
-        }
+          json root;
+          root["request_id"] = 19;
+          bool loginSuccess = false;
 
-        json root;
-        root["request_id"] = 19;
-        if (accountPtr == nullptr) {
-          root["login_success"] = 0;
-        } else {
-          root["login_success"] = 1;
-        }
-        json_string = root.dump();
+          if (accountPtr == nullptr) {
+              cout << "[로그인] 실패: 존재하지 않는 ID (" << id << ")" << endl;
+              loginSuccess = false;
+          } else {
+              // 3. 계정 정보가 존재할 경우, 애플리케이션 레벨에서 비밀번호 검증
+              if (verify_password(accountPtr->passwd, passwd)) {
+                  cout << "[로그인] 성공: ID (" << id << ")" << endl;
+                  loginSuccess = true;
+              } else {
+                  cout << "[로그인] 실패: 비밀번호 불일치 (ID: " << id << ")" << endl;
+                  loginSuccess = false;
+              }
+              // 동적으로 할당된 메모리 해제
+              delete accountPtr;
+          }
 
-        uint32_t res_len = json_string.length();
-        uint32_t net_res_len = htonl(res_len);
-        sendAll(ssl, reinterpret_cast<const char*>(&net_res_len),
-                sizeof(net_res_len), 0);
-        sendAll(ssl, json_string.c_str(), res_len, 0);
-        cout << "[Thread " << std::this_thread::get_id() << "] 응답 전송 완료."
-             << endl;
+          root["login_success"] = loginSuccess ? 1 : 0;
+          json_string = root.dump();
+
+          uint32_t res_len = json_string.length();
+          uint32_t net_res_len = htonl(res_len);
+          sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
+          sendAll(ssl, json_string.c_str(), res_len, 0);
+          cout << "[응답] 로그인 결과 전송 완료." << endl;
       }
 
+      // --- 회원가입 요청 (request_id: 9) ---
       else if (received_json.value("request_id", -1) == 9) {
-        // 클라이언트 회원가입 신호
-        // insert해서 id가 중복되면 회원가입 실패, 아니라면 성공
+          cout << "[회원가입] 회원가입 요청 수신" << endl;
+          string id = received_json["data"].value("id", "");
+          string passwd = received_json["data"].value("passwd", "");
 
-        string id = received_json["data"].value("id", "");
-        string passwd = received_json["data"].value("passwd", "");
+          json root;
+          root["request_id"] = 20;
+          bool signUpSuccess = false;
 
-        // 비번 해싱 후 평문 비밀번호 메모리 초기화
-        // 아래 passwd 변수들 다 바꿔야함
-        // fill(passwd.begin(),passwd.end(),0);
+          try {
+              string hashed_passwd = hash_password(passwd);
+              cout << "[회원가입] 비밀번호 해싱 완료 (ID: " << id << ")" << endl;
 
-        Account account = {id, passwd};
-        bool signUpOkay;
-        {
-          std::lock_guard<std::mutex> lock(db_mutex);
-          cout << "[Thread " << std::this_thread::get_id()
-               << "] DB 조회 시작 (Lock 획득)" << endl;
-          signUpOkay = insert_data_accounts(db, account);
-          cout << "[Thread " << std::this_thread::get_id()
-               << "] DB 조회 완료 (Lock 해제)" << endl;
-        }
+              Account account = {id, hashed_passwd};
+              {
+                  std::lock_guard<std::mutex> lock(db_mutex);
+                  cout << "[DB] 계정 정보 삽입 시도 (ID: " << id << ")" << endl;
+                  signUpSuccess = insert_data_accounts(db, account);
+              }
 
-        json root;
-        root["request_id"] = 20;
-        if (signUpOkay == true) {
-          root["sign_up_success"] = 1;
-        } else {
-          root["sign_up_success"] = 0;
-        }
-        json_string = root.dump();
+              if (signUpSuccess) {
+                  cout << "[회원가입] 성공 (ID: " << id << ")" << endl;
+              } else {
+                  cout << "[회원가입] 실패: ID 중복 또는 DB 오류 (ID: " << id << ")" << endl;
+              }
 
-        uint32_t res_len = json_string.length();
-        uint32_t net_res_len = htonl(res_len);
-        sendAll(ssl, reinterpret_cast<const char*>(&net_res_len),
-                sizeof(net_res_len), 0);
-        sendAll(ssl, json_string.c_str(), res_len, 0);
-        cout << "[Thread " << std::this_thread::get_id() << "] 응답 전송 완료."
-             << endl;
+          } catch (const std::runtime_error& e) {
+              cerr << "[에러] 비밀번호 해싱 실패: " << e.what() << endl;
+              signUpSuccess = false;
+          }
+
+          root["sign_up_success"] = signUpSuccess ? 1 : 0;
+          json_string = root.dump();
+
+          uint32_t res_len = json_string.length();
+          uint32_t net_res_len = htonl(res_len);
+          sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
+          sendAll(ssl, json_string.c_str(), res_len, 0);
+          cout << "[응답] 회원가입 결과 전송 완료." << endl;
       }
       else if (received_json.value("request_id", -1) == 20 && !bbox_push_enabled) {
         bbox_push_enabled = true;
@@ -1185,6 +1198,40 @@ void printNowTimeKST() {
        << setw(3) << milliseconds << " KST]" << endl;
 }
 
+/**
+ * @brief Argon2id를 사용하여 비밀번호를 해싱합니다.
+ *
+ * @param password 평문 비밀번호.
+ * @return 해싱된 비밀번호 문자열.
+ */
+string hash_password(const string& password) {
+    char hashed_password[crypto_pwhash_STRBYTES];
+
+    if (crypto_pwhash_str(hashed_password, password.c_str(), password.length(),
+                          crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                          crypto_pwhash_MEMLIMIT_INTERACTIVE) != 0) {
+        throw runtime_error("비밀번호 해싱 실패");
+    }
+
+    return string(hashed_password);
+}
+
+/**
+ * @brief Argon2id를 사용하여 비밀번호를 검증합니다.
+ *
+ * @param hashed_password 해싱된 비밀번호.
+ * @param password 평문 비밀번호.
+ * @return 비밀번호가 일치하면 true, 그렇지 않으면 false.
+ */
+bool verify_password(const string& hashed_password, const string& password) {
+    cout << "[Debug] Hashed password: " << hashed_password << endl;
+    cout << "[Debug] Plain password: " << password << endl;
+    int result = crypto_pwhash_str_verify(hashed_password.c_str(), password.c_str(),
+                                          password.length());
+    cout << "[Debug] Password verification result: " << (result == 0 ? "Match" : "Mismatch") << endl;
+    return result == 0;
+}
+
 
 
 // =======
@@ -1219,3 +1266,4 @@ bool send_bboxes_to_client(SSL* ssl) {
         return ret > 0;
     }
 }
+

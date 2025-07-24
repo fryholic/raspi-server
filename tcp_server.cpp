@@ -902,7 +902,6 @@ void handle_client(int client_socket, SQLite::Database& db,
         // 클라이언트 로그인 신호
         // id, passwd select 이용해서 검사
 
-        string type = received_json["data"].value("type", "user");
         string id = received_json["data"].value("id", "");
         string passwd = received_json["data"].value("passwd", "");
 
@@ -942,7 +941,6 @@ void handle_client(int client_socket, SQLite::Database& db,
         // 클라이언트 회원가입 신호
         // insert해서 id가 중복되면 회원가입 실패, 아니라면 성공
 
-        string type = received_json["data"].value("type", "user");
         string id = received_json["data"].value("id", "");
         string passwd = received_json["data"].value("passwd", "");
 
@@ -950,7 +948,7 @@ void handle_client(int client_socket, SQLite::Database& db,
         // 아래 passwd 변수들 다 바꿔야함
         // fill(passwd.begin(),passwd.end(),0);
 
-        Account account = {type, id, passwd};
+        Account account = {id, passwd};
         bool signUpOkay;
         {
           std::lock_guard<std::mutex> lock(db_mutex);

@@ -344,8 +344,7 @@ void create_table_accounts(SQLite::Database& db) {
   db.exec(
       "CREATE TABLE IF NOT EXISTS accounts ("
       "id TEXT PRIMARY KEY, "
-      "passwd TEXT NOT NULL, "
-      "type TEXT NOT NULL)");
+      "passwd TEXT NOT NULL ");
   cout << "'accounts' 테이블이 준비되었습니다.\n";
   return;
 }
@@ -361,11 +360,9 @@ Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
     query.bind(2, passwd);
     query.exec();
 
-    string type = query.getColumn("type");
     string id = query.getColumn("id");
     string passwd = query.getColumn("passwd");
 
-    account->type = type;
     account->id = id;
     account->passwd = passwd;
 
@@ -379,10 +376,9 @@ bool insert_data_accounts(SQLite::Database& db, Account account) {
   try {
     // SQL 인젝션 방지를 위해 Prepared Statement 사용
     SQLite::Statement query(
-        db, "INSERT INTO accounts (id, passwd, type) VALUES (?, ?, ?)");
+        db, "INSERT INTO accounts (id, passwd) VALUES (?, ?)");
     query.bind(1, account.id);
     query.bind(2, account.passwd);
-    query.bind(3, account.type);
     cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
     query.exec();
 

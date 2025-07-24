@@ -4,3 +4,11 @@ server_log.db
 
 fullchain.crt
 server.key
+
+*.o
+
+*.crt
+*.key
+*.srl
+*.cnf
+*.csr

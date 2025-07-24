@@ -52,7 +52,6 @@ struct VerticalLineEquation {
 };
 
 struct Account {
-  string type;  // "admin", "user"
   string id;
   string passwd;
 };

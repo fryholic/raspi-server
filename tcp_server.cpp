@@ -930,6 +930,8 @@ void handle_client(int client_socket, SQLite::Database& db,
               if (verify_password(accountPtr->passwd, passwd)) {
                   cout << "[로그인] 성공: ID (" << id << ")" << endl;
                   loginSuccess = true;
+                  memset(&passwd[0], 0, passwd.length()); // 평문 비밀번호 해싱 후 메모리에서 즉시 삭제
+                  passwd.clear();
               } else {
                   cout << "[로그인] 실패: 비밀번호 불일치 (ID: " << id << ")" << endl;
                   loginSuccess = false;
@@ -961,6 +963,8 @@ void handle_client(int client_socket, SQLite::Database& db,
           try {
               string hashed_passwd = hash_password(passwd);
               cout << "[회원가입] 비밀번호 해싱 완료 (ID: " << id << ")" << endl;
+              memset(&passwd[0], 0, passwd.length()); // 평문 비밀번호 해싱 후 메모리에서 즉시 삭제
+              passwd.clear();
 
               Account account = {id, hashed_passwd};
               {
@@ -1139,48 +1143,6 @@ ssize_t sendAll(SSL* ssl, const char* buffer, size_t len, int flags) {
 
   return total_sent;
 }
-
-// 일반 소켓 버전의 송수신 함수
-// bool recvAll(int socket_fd, char* buffer, size_t len) {
-//     size_t total_received = 0;
-//     while (total_received < len) {
-//         ssize_t bytes_received = recv(socket_fd, buffer + total_received, len
-//         - total_received, 0);
-
-//         if (bytes_received == -1) {
-//             if (errno == EINTR) continue;
-//             cerr << "recv 에러: " << strerror(errno) << endl;
-//             return false;
-//         }
-//         if (bytes_received == 0) {
-//             cerr << "데이터 수신 중 클라이언트 연결 종료" << endl;
-//             return false;
-//         }
-//         total_received += bytes_received;
-//     }
-//     return true;
-// }
-
-// ssize_t sendAll(int socket_fd, const char* buffer, size_t len, int flags) {
-//     size_t total_sent = 0;
-//     while (total_sent < len) {
-//         ssize_t bytes_sent = send(socket_fd, buffer + total_sent, len -
-//         total_sent, flags);
-
-//         if (bytes_sent == -1) {
-//             if (errno == EINTR) {
-//                 continue;
-//             }
-//             return -1;
-//         }
-
-//         if (bytes_sent == 0) {
-//             return total_sent;
-//         }
-//         total_sent += bytes_sent;
-//     }
-//     return total_sent;
-// }
 
 void printNowTimeKST() {
   // 한국 시간 (KST), 밀리초 포함 출력

@@ -812,10 +812,21 @@ void handle_client(int client_socket, SQLite::Database& db,
                << "] DB 삽입 완료 (Lock 해제)" << endl;
         }
         // --- 보호 끝 ---
+        // 바뀐 매트릭스 번호가 있다면 업데이트
+        bool updateSuccess;
+        {
+          std::lock_guard<std::mutex> lock(db_mutex);
+          cout << "[Thread " << std::this_thread::get_id()
+               << "] DB 수정 시작 (Lock 획득)" << endl;
+          updateSuccess = update_data_baseLines(db, baseLine);
+          cout << "[Thread " << std::this_thread::get_id()
+               << "] DB 수정 완료 (Lock 해제)" << endl;
+        }
 
         json root;
         root["request_id"] = 14;
         root["insert_success"] = (insertSuccess == true) ? 1 : 0;
+        root["update_success"] = (updateSuccess == true) ? 1 : 0;
         json_string = root.dump();
 
         uint32_t res_len = json_string.length();

@@ -47,6 +47,10 @@ extern SSL_CTX* ssl_ctx;
 #include "metadata_parser.hpp"
 #include <atomic>
 
+// OTP 관련 헤더
+#include "otp/src/cotp/cotp.hpp"
+#include "otp/src/cotp/qr_code.hpp"
+
 
 
 

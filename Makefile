@@ -1,16 +1,20 @@
 CXX = g++
-CXXFLAGS = -Wall -std=c++17 $(shell pkg-config --cflags gstreamer-rtsp-server-1.0 gstreamer-1.0 glib-2.0 libcurl) -I/usr/include/openssl
+CXXFLAGS = -Wall -std=c++17 $(shell pkg-config --cflags gstreamer-rtsp-server-1.0 gstreamer-1.0 glib-2.0 libcurl) -I/usr/include/openssl -I./otp/src -I./otp/deps/QR-Code-generator
 LDFLAGS = $(shell pkg-config --libs gstreamer-rtsp-server-1.0 gstreamer-1.0 glib-2.0 libcurl) -pthread -lSQLiteCpp -lsqlite3 -lssl -lcrypto -lsodium
+
+OTP_SRC = $(wildcard otp/src/*.cpp) $(wildcard otp/src/cotp/*.cpp)
+OTP_DEPS_SRC = otp/deps/QR-Code-generator/qrcodegen.cpp
+OTP_OBJ = $(OTP_SRC:.cpp=.o) $(OTP_DEPS_SRC:.cpp=.o)
 
 all: server metadata/control
 
 clean:
-	rm -f *.o server metadata/control
+	rm -f *.o server metadata/control $(OTP_OBJ)
 
 # TCP, RTSP 서버
 
-server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o
-	$(CXX) server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o -o server $(LDFLAGS)
+server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o $(OTP_OBJ)
+	$(CXX) server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o $(OTP_OBJ) -o server $(LDFLAGS)
 
 server.o: server.cpp
 	$(CXX) -c server.cpp $(CXXFLAGS)

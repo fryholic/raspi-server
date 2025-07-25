@@ -1,4 +1,7 @@
 #include "tcp_server.hpp"
+#include <unordered_map>
+#include <memory>
+#include <random>
 
 /*
 
@@ -9,6 +12,53 @@ OpenSSL 관련
 std::mutex ssl_write_mutex;
 
 SSL_CTX* ssl_ctx = nullptr;
+
+// OTP 관련 전역 변수
+std::unordered_map<std::string, std::unique_ptr<cotp::TOTP>> user_otps;
+
+// OTP 헬퍼 함수들
+std::pair<std::string, std::string> generate_otp_uri(const std::string& id) {
+    std::string secret = cotp::OTP::random_base32(16);
+    auto totp = std::make_unique<cotp::TOTP>(secret, "SHA1", 6, 30);
+
+    totp->set_account(id);
+    totp->set_issuer("CCTV Monitoring System");
+    std::string uri = totp->build_uri();
+
+    user_otps[id] = std::move(totp);
+    return {uri, secret};
+}
+
+bool verify_otp(const std::string& id, int otp) {
+    auto it = user_otps.find(id);
+    if (it != user_otps.end()) {
+        return it->second->verify(otp, time(nullptr), 1);
+    }
+    return false;
+}
+
+std::string generate_qr_code_svg(const std::string& otp_uri) {
+    cotp::QR_code qr;
+    qr.set_content(otp_uri);
+    return qr.get_svg();
+}
+
+std::vector<std::string> generate_recovery_codes() {
+    static const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    std::vector<std::string> codes;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, sizeof(alphanum) - 2);
+
+    for (int i = 0; i < 5; ++i) {
+        std::string code;
+        for (int j = 0; j < 10; ++j) {
+            code += alphanum[dis(gen)];
+        }
+        codes.push_back(code);
+    }
+    return codes;
+}
 
 // SSL 초기화 함수
 bool init_openssl() {
@@ -459,6 +509,7 @@ void handle_client(int client_socket, SQLite::Database& db,
   create_table_baseLines(db);
   create_table_verticalLineEquations(db);
   create_table_accounts(db);
+  create_table_recovery_codes(db);
 
 
   atomic<bool> bbox_push_enabled(false);
@@ -899,14 +950,13 @@ void handle_client(int client_socket, SQLite::Database& db,
       }
 
       else if (received_json.value("request_id", -1) == 8) {
-          cout << "[로그인] 로그인 요청 수신" << endl;
+          cout << "[로그인] 1단계 로그인 요청 수신 (ID/PW 검증)" << endl;
           string id = received_json["data"].value("id", "");
           string passwd = received_json["data"].value("passwd", "");
 
           // 1. 입력 값 유효성 검사
           if (id.empty() || passwd.empty()) {
               cerr << "[에러] 클라이언트가 보낸 ID 또는 비밀번호가 비어 있습니다." << endl;
-              // 클라이언트에게 실패 응답 전송 로직...
               continue;
           }
 
@@ -914,38 +964,113 @@ void handle_client(int client_socket, SQLite::Database& db,
           {
               std::lock_guard<std::mutex> lock(db_mutex);
               cout << "[DB] ID로 계정 조회 시도 (ID: " << id << ")" << endl;
-              // 2. ID만으로 DB에서 계정 정보 조회 (구조 개선)
               accountPtr = get_account_by_id(db, id);
           }
 
           json root;
           root["request_id"] = 19;
-          bool loginSuccess = false;
+          bool step1Success = false;
 
           if (accountPtr == nullptr) {
-              cout << "[로그인] 실패: 존재하지 않는 ID (" << id << ")" << endl;
-              loginSuccess = false;
+              cout << "[로그인] 1단계 실패: 존재하지 않는 ID (" << id << ")" << endl;
+              step1Success = false;
           } else {
-              // 3. 계정 정보가 존재할 경우, 애플리케이션 레벨에서 비밀번호 검증
               if (verify_password(accountPtr->passwd, passwd)) {
-                  cout << "[로그인] 성공: ID (" << id << ")" << endl;
-                  loginSuccess = true;
+                  cout << "[로그인] 1단계 성공: ID/PW 검증 완료 (" << id << ")" << endl;
+                  step1Success = true;
+                  
+                  // OTP 객체 생성 (DB에서 secret 로드)
+                  if (!accountPtr->otp_secret.empty()) {
+                      auto totp = std::make_unique<cotp::TOTP>(accountPtr->otp_secret, "SHA1", 6, 30);
+                      totp->set_account(id);
+                      totp->set_issuer("CCTV Monitoring System");
+                      user_otps[id] = std::move(totp);
+                  }
               } else {
-                  cout << "[로그인] 실패: 비밀번호 불일치 (ID: " << id << ")" << endl;
-                  loginSuccess = false;
+                  cout << "[로그인] 1단계 실패: 비밀번호 불일치 (ID: " << id << ")" << endl;
+                  step1Success = false;
               }
-              // 동적으로 할당된 메모리 해제
               delete accountPtr;
           }
 
-          root["login_success"] = loginSuccess ? 1 : 0;
+          root["step1_success"] = step1Success ? 1 : 0;
+          if (step1Success) {
+              root["requires_otp"] = 1;
+              root["message"] = "ID/PW 검증 완료. OTP 또는 복구 코드를 입력하세요.";
+          }
           json_string = root.dump();
 
           uint32_t res_len = json_string.length();
           uint32_t net_res_len = htonl(res_len);
           sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
           sendAll(ssl, json_string.c_str(), res_len, 0);
-          cout << "[응답] 로그인 결과 전송 완료." << endl;
+          cout << "[응답] 1단계 로그인 결과 전송 완료." << endl;
+      }
+
+      // --- OTP/복구코드 검증 요청 (request_id: 22) ---
+      else if (received_json.value("request_id", -1) == 22) {
+          cout << "[로그인] 2단계 로그인 요청 수신 (OTP/복구코드 검증)" << endl;
+          string id = received_json["data"].value("id", "");
+          string input = received_json["data"].value("input", "");
+
+          json root;
+          root["request_id"] = 23;
+          bool finalLoginSuccess = false;
+          bool is_recovery_code = false;
+
+          try {
+              // 입력값이 숫자인지 확인 (OTP는 숫자, 복구코드는 문자열)
+              bool is_numeric = !input.empty() && std::all_of(input.begin(), input.end(), ::isdigit);
+
+              if (is_numeric && input.length() == 6) {
+                  // OTP 검증
+                  int otp = std::stoi(input);
+                  if (verify_otp(id, otp)) {
+                      cout << "[로그인] OTP 검증 성공 (ID: " << id << ")" << endl;
+                      finalLoginSuccess = true;
+                  } else {
+                      cout << "[로그인] OTP 검증 실패 (ID: " << id << ")" << endl;
+                  }
+              } else {
+                  // 복구 코드 검증
+                  {
+                      std::lock_guard<std::mutex> lock(db_mutex);
+                      cout << "[DB] 복구 코드 검증 시도 (ID: " << id << ")" << endl;
+                      if (verify_recovery_code(db, id, input)) {
+                          cout << "[로그인] 복구 코드 검증 성공 (ID: " << id << ")" << endl;
+                          finalLoginSuccess = true;
+                          is_recovery_code = true;
+                          // 사용된 복구 코드 무효화
+                          invalidate_recovery_code(db, id, input);
+                          cout << "[DB] 사용된 복구 코드 무효화 완료 (ID: " << id << ")" << endl;
+                      } else {
+                          cout << "[로그인] 복구 코드 검증 실패 (ID: " << id << ")" << endl;
+                      }
+                  }
+              }
+
+          } catch (const std::exception& e) {
+              cerr << "[에러] OTP/복구코드 검증 실패: " << e.what() << endl;
+              finalLoginSuccess = false;
+          }
+
+          root["final_login_success"] = finalLoginSuccess ? 1 : 0;
+          if (finalLoginSuccess) {
+              if (is_recovery_code) {
+                  root["message"] = "복구 코드로 로그인 성공. 해당 복구 코드는 무효화되었습니다.";
+              } else {
+                  root["message"] = "OTP 검증 성공. 로그인 완료.";
+              }
+          } else {
+              root["message"] = "OTP 또는 복구 코드가 올바르지 않습니다.";
+          }
+          json_string = root.dump();
+
+          uint32_t res_len = json_string.length();
+          uint32_t net_res_len = htonl(res_len);
+          sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
+          sendAll(ssl, json_string.c_str(), res_len, 0);
+          cout << "[응답] 2단계 로그인 결과 전송 완료." << endl;
       }
 
       // --- 회원가입 요청 (request_id: 9) ---
@@ -957,16 +1082,40 @@ void handle_client(int client_socket, SQLite::Database& db,
           json root;
           root["request_id"] = 20;
           bool signUpSuccess = false;
+          string qr_code_svg = "";
+          string otp_uri = "";
+          vector<string> recovery_codes;
 
           try {
               string hashed_passwd = hash_password(passwd);
               cout << "[회원가입] 비밀번호 해싱 완료 (ID: " << id << ")" << endl;
 
-              Account account = {id, hashed_passwd};
+              // OTP URI 생성
+              auto otp_result = generate_otp_uri(id);
+              otp_uri = otp_result.first;
+              string otp_secret = otp_result.second;
+              cout << "[회원가입] OTP URI 생성 완료 (ID: " << id << ")" << endl;
+
+              // QR 코드 SVG 생성
+              qr_code_svg = generate_qr_code_svg(otp_uri);
+              cout << "[회원가입] QR 코드 생성 완료 (ID: " << id << ")" << endl;
+
+              // 복구 코드 생성
+              recovery_codes = generate_recovery_codes();
+              cout << "[회원가입] 복구 코드 생성 완료 (ID: " << id << ")" << endl;
+
+              Account account = {id, hashed_passwd, otp_secret};
               {
                   std::lock_guard<std::mutex> lock(db_mutex);
                   cout << "[DB] 계정 정보 삽입 시도 (ID: " << id << ")" << endl;
                   signUpSuccess = insert_data_accounts(db, account);
+                  
+                  if (signUpSuccess) {
+                      // OTP secret 저장
+                      store_otp_secret(db, id, otp_secret);
+                      // 복구 코드 저장
+                      store_recovery_codes(db, id, recovery_codes);
+                  }
               }
 
               if (signUpSuccess) {
@@ -976,11 +1125,20 @@ void handle_client(int client_socket, SQLite::Database& db,
               }
 
           } catch (const std::runtime_error& e) {
-              cerr << "[에러] 비밀번호 해싱 실패: " << e.what() << endl;
+              cerr << "[에러] 회원가입 처리 실패: " << e.what() << endl;
               signUpSuccess = false;
           }
 
           root["sign_up_success"] = signUpSuccess ? 1 : 0;
+          if (signUpSuccess) {
+              root["qr_code_svg"] = qr_code_svg;
+              root["otp_uri"] = otp_uri;
+              json recovery_codes_json = json::array();
+              for (const auto& code : recovery_codes) {
+                  recovery_codes_json.push_back(code);
+              }
+              root["recovery_codes"] = recovery_codes_json;
+          }
           json_string = root.dump();
 
           uint32_t res_len = json_string.length();

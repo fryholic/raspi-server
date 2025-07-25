@@ -4,21 +4,16 @@
 #include <vector>
 #include <string>
 #include <mutex>
-
 #include <cstring>
+#include <atomic>
+#include "server_bbox.hpp"
 
-struct BBox {
-    int object_id;
-    float left;
-    float top;
-    float right;
-    float bottom;
-    float confidence = -1.0f;
-    std::string type = "Unknown";
-};
-
-extern std::vector<BBox> latest_bboxes;
+extern std::vector<ServerBBox> latest_bboxes;
 extern std::mutex bbox_mutex;
+
+void start_metadata_parser();
+
+void stop_metadata_parser();
 
 void parse_metadata();
 

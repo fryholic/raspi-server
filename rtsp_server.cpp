@@ -67,66 +67,86 @@ void rtsp_run(int argc, char *argv[]) {
   return;
 }
 
-void pi_rtsp_run(int argc, char *argv[]) {
-  GMainLoop *loop;
-  GstRTSPServer *server;
-  GstRTSPMountPoints *mounts;
-  GstRTSPMediaFactory *factory;
-  gchar *port = (gchar *)PICAM_RTSP_PORT;
-  gchar *source_rtsp_url;
+// void pi_rtsp_run(int argc, char *argv[]) {
+//   GMainLoop *loop;
+//   GstRTSPServer *server;
+//   GstRTSPMountPoints *mounts;
+//   GstRTSPMediaFactory *factory;
+//   gchar *port = (gchar *)PICAM_RTSP_PORT;
+//   gchar *source_rtsp_url;
 
-  string source_rtsp_url_str = "rtsp://192.168.0.34:8554/stream";
-  source_rtsp_url = const_cast<gchar*>(source_rtsp_url_str.c_str());
+//   // 포트가 이미 사용중인지 확인
+//   GError *error = NULL;
+//   GSocket *test_socket = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, &error);
+//   if (!test_socket) {
+//     g_printerr("소켓 생성 실패: %s\n", error->message);
+//     g_error_free(error);
+//     return;
+//   }
 
-  // Initialize GStreamer
-  gst_init(&argc, &argv);
+//   GSocketAddress *addr = g_inet_socket_address_new_from_string("0.0.0.0", atoi(PICAM_RTSP_PORT));
+//   if (!g_socket_bind(test_socket, addr, TRUE, &error)) {
+//     g_printerr("포트 %s가 이미 사용중입니다\n", PICAM_RTSP_PORT);
+//     g_object_unref(addr);
+//     g_object_unref(test_socket);
+//     g_error_free(error);
+//     return;
+//   }
+//   g_object_unref(addr);
+//   g_object_unref(test_socket);
 
-  loop = g_main_loop_new(NULL, FALSE);
+//   string source_rtsp_url_str = "rtsp://192.168.0.34:8554/stream";
+//   source_rtsp_url = const_cast<gchar*>(source_rtsp_url_str.c_str());
 
-  // Create a new RTSP server
-  server = gst_rtsp_server_new();
-  g_object_set(server, "service", port, NULL);
+//   // Initialize GStreamer
+//   gst_init(&argc, &argv);
 
-  // Get the mount points for the server
-  mounts = gst_rtsp_server_get_mount_points(server);
+//   loop = g_main_loop_new(NULL, FALSE);
 
-  // Create a media factory
-  factory = gst_rtsp_media_factory_new();
+//   // Create a new RTSP server
+//   server = gst_rtsp_server_new();
+//   g_object_set(server, "service", port, NULL);
 
-  // Construct the pipeline string for re-streaming
-  // This pipeline connects to the source RTSP, depayloads, parses, and rep
-  // payloads it for new clients
-  gchar *launch_string = g_strdup_printf(
-      "( rtspsrc location=%s latency=0 ! rtph264depay ! h264parse ! rtph264pay "
-      "name=pay0 pt=96 )",
-      source_rtsp_url);
+//   // Get the mount points for the server
+//   mounts = gst_rtsp_server_get_mount_points(server);
 
-  gst_rtsp_media_factory_set_launch(factory, launch_string);
-  g_free(launch_string);
+//   // Create a media factory
+//   factory = gst_rtsp_media_factory_new();
 
-  // Set the factory to be shared. This means one source pipeline for all
-  // clients.
-  gst_rtsp_media_factory_set_shared(factory, TRUE);
+//   // Construct the pipeline string for re-streaming
+//   // This pipeline connects to the source RTSP, depayloads, parses, and rep
+//   // payloads it for new clients
+//   gchar *launch_string = g_strdup_printf(
+//       "( rtspsrc location=%s latency=0 ! rtph264depay ! h264parse ! rtph264pay "
+//       "name=pay0 pt=96 )",
+//       source_rtsp_url);
 
-  // Add the factory to the mount points
-  gst_rtsp_mount_points_add_factory(mounts, PICAM_MOUNT_POINT, factory);
-  g_object_unref(mounts);
+//   gst_rtsp_media_factory_set_launch(factory, launch_string);
+//   g_free(launch_string);
 
-  // Attach the server to the main context
-  if (gst_rtsp_server_attach(server, NULL) == 0) {
-    g_printerr("Failed to attach RTSP server.\n");
-    return;
-  }
+//   // Set the factory to be shared. This means one source pipeline for all
+//   // clients.
+//   gst_rtsp_media_factory_set_shared(factory, TRUE);
 
-  cout << "\nPiCam RTSP middle server is running on " << PICAM_RTSP_PORT
-       << PICAM_MOUNT_POINT << "\n";
+//   // Add the factory to the mount points
+//   gst_rtsp_mount_points_add_factory(mounts, PICAM_MOUNT_POINT, factory);
+//   g_object_unref(mounts);
 
-  // Run the main loop
-  g_main_loop_run(loop);
+//   // Attach the server to the main context
+//   if (gst_rtsp_server_attach(server, NULL) == 0) {
+//     g_printerr("Failed to attach RTSP server.\n");
+//     return;
+//   }
 
-  // Clean up
-  g_main_loop_unref(loop);
-  g_object_unref(server);
+//   cout << "\nPiCam RTSP middle server is running on " << PICAM_RTSP_PORT
+//        << PICAM_MOUNT_POINT << "\n";
 
-  return;
-}
+//   // Run the main loop
+//   g_main_loop_run(loop);
+
+//   // Clean up
+//   g_main_loop_unref(loop);
+//   g_object_unref(server);
+
+//   return;
+// }

@@ -14,12 +14,12 @@ using namespace std;
 int main(int argc, char *argv[]) {
   thread rtsp_run_thread(rtsp_run, argc, argv);
 
-  thread pi_rtsp_run_thread(pi_rtsp_run, argc, argv);
+  // thread pi_rtsp_run_thread(pi_rtsp_run, argc, argv);
 
   thread tcp_run_thread(tcp_run);
 
   rtsp_run_thread.join();
-  pi_rtsp_run_thread.join();
+  // pi_rtsp_run_thread.join();
   tcp_run_thread.join();
 
   return 0;

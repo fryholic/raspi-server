@@ -32,7 +32,7 @@ std::pair<std::string, std::string> generate_otp_uri(const std::string& id) {
 bool verify_otp(const std::string& id, int otp) {
     auto it = user_otps.find(id);
     if (it != user_otps.end()) {
-        return it->second->verify(otp, time(nullptr), 1);
+        return it->second->verify(otp, time(nullptr), 0);
     }
     return false;
 }

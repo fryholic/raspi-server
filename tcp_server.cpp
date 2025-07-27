@@ -992,6 +992,11 @@ void handle_client(int client_socket, SQLite::Database& db,
             }
         }
 
+        // 평문 비밀번호 메모리에서 즉시 삭제
+        memset(&passwd[0], 0, passwd.length());
+        passwd.clear();
+        cout << "[Debug] 평문 비밀번호 메모리에서 삭제 완료." << endl;
+
         root["step1_success"] = step1Success ? 1 : 0;
         if (step1Success) {
             root["requires_otp"] = (accountPtr->use_otp ? 1 : 0);
@@ -1094,6 +1099,11 @@ void handle_client(int client_socket, SQLite::Database& db,
           try {
               string hashed_passwd = hash_password(passwd);
               cout << "[회원가입] 비밀번호 해싱 완료 (ID: " << id << ")" << endl;
+
+              // 평문 비밀번호 메모리에서 즉시 삭제
+              memset(&passwd[0], 0, passwd.length());
+              passwd.clear();
+              cout << "[Debug] 평문 비밀번호 메모리에서 삭제 완료." << endl;
 
               if (use_otp) {
                   // OTP URI 생성

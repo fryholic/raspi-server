@@ -55,6 +55,7 @@ struct Account {
   string id;
   string passwd;
   string otp_secret;
+  bool use_otp;
 };
 
 struct RecoveryCode {

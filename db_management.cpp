@@ -345,7 +345,8 @@ void create_table_accounts(SQLite::Database& db) {
       "CREATE TABLE IF NOT EXISTS accounts (" 
       "id TEXT PRIMARY KEY, "
       "passwd TEXT NOT NULL, "
-      "otp_secret TEXT)"
+      "otp_secret TEXT, "
+      "use_otp INTEGER DEFAULT 0)"
   );
   cout << "'accounts' 테이블이 준비되었습니다.\n";
   return;
@@ -382,10 +383,11 @@ Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
 bool insert_data_accounts(SQLite::Database& db, Account account) {
   try {
     SQLite::Statement query(
-        db, "INSERT INTO accounts (id, passwd, otp_secret) VALUES (?, ?, ?)");
+        db, "INSERT INTO accounts (id, passwd, otp_secret, use_otp) VALUES (?, ?, ?, ?)");
     query.bind(1, account.id);
     query.bind(2, account.passwd);
     query.bind(3, account.otp_secret);
+    query.bind(4, account.use_otp ? 1 : 0);
     cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
     query.exec();
 
@@ -399,16 +401,16 @@ bool insert_data_accounts(SQLite::Database& db, Account account) {
 
 Account* get_account_by_id(SQLite::Database& db, const string& id) {
     try {
-        // 오직 ID만으로 계정을 조회하는 SQL 쿼리
-        SQLite::Statement query(db, "SELECT id, passwd, otp_secret FROM accounts WHERE id = ?");
+        // use_otp도 함께 조회
+        SQLite::Statement query(db, "SELECT id, passwd, otp_secret, use_otp FROM accounts WHERE id = ?");
         query.bind(1, id);
 
         if (query.executeStep()) { // 행이 존재하는 경우 (사용자를 찾음)
-            // 동적으로 Account 객체를 생성하여 반환
             Account* acc = new Account{
                 query.getColumn(0).getString(), // id
                 query.getColumn(1).getString(),  // passwd (hashed)
-                query.getColumn(2).getString() // otp_secret
+                query.getColumn(2).getString(), // otp_secret
+                query.getColumn(3).getInt() == 1 // use_otp
             };
             return acc;
         } else {

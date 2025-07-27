@@ -96,53 +96,147 @@ int main() {
     std::cout << "Connected with SSL\n";
 
     while (true) {
-        std::cout << "Select action: 1) Login 2) SignUp 3) Exit: ";
+        std::cout << "\n=== OTP Test Client ===\n";
+        std::cout << "1) Login (2-step with OTP)\n";
+        std::cout << "2) SignUp (with OTP setup)\n";
+        std::cout << "3) Exit\n";
+        std::cout << "Select action: ";
         int action;
         std::cin >> action;
         if (action == 3) break;
-        std::string id, passwd;
-        std::cout << "ID: "; std::cin >> id;
-        std::cout << "Password: "; std::cin >> passwd;
-        // Client-side hash & verify for debug
-        char client_hash[crypto_pwhash_STRBYTES];
-        if (crypto_pwhash_str(client_hash, passwd.c_str(), passwd.size(),
-                             crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                             crypto_pwhash_MEMLIMIT_INTERACTIVE) != 0) {
-            std::cerr << "[Client Debug] Password hashing failed" << std::endl;
-        } else {
-            std::cout << "[Client Debug] Local hashed passwd: " << client_hash << std::endl;
-            bool ok = crypto_pwhash_str_verify(client_hash, passwd.c_str(), passwd.size()) == 0;
-            std::cout << "[Client Debug] Local verify result: " << ok << std::endl;
+
+        if (action == 1) {
+            // 2단계 로그인 테스트
+            std::string id, passwd;
+            std::cout << "ID: "; std::cin >> id;
+            std::cout << "Password: "; std::cin >> passwd;
+
+            // 1단계: ID/PW 검증
+            json step1_request;
+            step1_request["request_id"] = 8;
+            step1_request["data"] = { {"id", id}, {"passwd", passwd} };
+            std::string step1_out = step1_request.dump();
+            std::cout << "[Debug][Client] Step 1 Request: " << step1_out << std::endl;
+
+            uint32_t len = htonl(static_cast<uint32_t>(step1_out.size()));
+            if (!sendAll(ssl, reinterpret_cast<const char*>(&len), sizeof(len))) break;
+            if (!sendAll(ssl, step1_out.c_str(), step1_out.size())) break;
+
+            // 1단계 응답 수신
+            uint32_t net_len;
+            if (!recvAll(ssl, reinterpret_cast<char*>(&net_len), sizeof(net_len))) break;
+            uint32_t res_len = ntohl(net_len);
+            std::vector<char> buf(res_len);
+            if (!recvAll(ssl, buf.data(), res_len)) break;
+            std::string step1_resp(buf.begin(), buf.end());
+            std::cout << "[Debug][Client] Step 1 Response: " << step1_resp << std::endl;
+            
+            json step1_res = json::parse(buf);
+            if (step1_res.value("step1_success", 0) == 1) {
+                std::cout << "✓ Step 1 Success: " << step1_res.value("message", "") << "\n";
+                int requires_otp = step1_res.value("requires_otp", 0);
+                if (requires_otp == 1) {
+                    // 2단계: OTP/복구코드 입력
+                    std::string otp_input;
+                    std::cout << "Enter OTP (6 digits) or Recovery Code: ";
+                    std::cin >> otp_input;
+
+                    json step2_request;
+                    step2_request["request_id"] = 22;
+                    step2_request["data"] = { {"id", id}, {"input", otp_input} };
+                    std::string step2_out = step2_request.dump();
+                    std::cout << "[Debug][Client] Step 2 Request: " << step2_out << std::endl;
+
+                    len = htonl(static_cast<uint32_t>(step2_out.size()));
+                    if (!sendAll(ssl, reinterpret_cast<const char*>(&len), sizeof(len))) break;
+                    if (!sendAll(ssl, step2_out.c_str(), step2_out.size())) break;
+
+                    // 2단계 응답 수신
+                    if (!recvAll(ssl, reinterpret_cast<char*>(&net_len), sizeof(net_len))) break;
+                    res_len = ntohl(net_len);
+                    buf.resize(res_len);
+                    if (!recvAll(ssl, buf.data(), res_len)) break;
+                    std::string step2_resp(buf.begin(), buf.end());
+                    std::cout << "[Debug][Client] Step 2 Response: " << step2_resp << std::endl;
+
+                    json step2_res = json::parse(buf);
+                    if (step2_res.value("final_login_success", 0) == 1) {
+                        std::cout << "✓ Login Complete: " << step2_res.value("message", "") << "\n";
+                    } else {
+                        std::cout << "✗ Login Failed: " << step2_res.value("message", "") << "\n";
+                    }
+                } else {
+                    // OTP 없이 바로 로그인 완료 처리
+                    std::cout << "✓ Login Complete: OTP 없이 로그인되었습니다.\n";
+                }
+            } else {
+                std::cout << "✗ Step 1 Failed: Invalid ID/Password\n";
+            }
+
+        } else if (action == 2) {
+            // 회원가입 테스트
+            std::string id, passwd;
+            std::cout << "ID: "; std::cin >> id;
+            std::cout << "Password: "; std::cin >> passwd;
+
+            int otp_choice = 1;
+            std::cout << "Enable OTP? (1: Yes, 0: No): ";
+            std::cin >> otp_choice;
+            bool use_otp = (otp_choice == 1);
+
+            // Client-side hash & verify for debug
+            char client_hash[crypto_pwhash_STRBYTES];
+            if (crypto_pwhash_str(client_hash, passwd.c_str(), passwd.size(),
+                                 crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                                 crypto_pwhash_MEMLIMIT_INTERACTIVE) != 0) {
+                std::cerr << "[Client Debug] Password hashing failed" << std::endl;
+            } else {
+                std::cout << "[Client Debug] Local hashed passwd: " << client_hash << std::endl;
+                bool ok = crypto_pwhash_str_verify(client_hash, passwd.c_str(), passwd.size()) == 0;
+                std::cout << "[Client Debug] Local verify result: " << ok << std::endl;
+            }
+
+            json signup_request;
+            signup_request["request_id"] = 9;
+            signup_request["data"] = { {"id", id}, {"passwd", passwd}, {"use_otp", use_otp} };
+            std::string signup_out = signup_request.dump();
+            std::cout << "[Debug][Client] SignUp Request: " << signup_out << std::endl;
+
+            uint32_t len = htonl(static_cast<uint32_t>(signup_out.size()));
+            if (!sendAll(ssl, reinterpret_cast<const char*>(&len), sizeof(len))) break;
+            if (!sendAll(ssl, signup_out.c_str(), signup_out.size())) break;
+
+            // 회원가입 응답 수신
+            uint32_t net_len;
+            if (!recvAll(ssl, reinterpret_cast<char*>(&net_len), sizeof(net_len))) break;
+            uint32_t res_len = ntohl(net_len);
+            std::vector<char> buf(res_len);
+            if (!recvAll(ssl, buf.data(), res_len)) break;
+            std::string signup_resp(buf.begin(), buf.end());
+            std::cout << "[Debug][Client] SignUp Response: " << signup_resp << std::endl;
+            
+            json signup_res = json::parse(buf);
+            if (signup_res.value("sign_up_success", 0) == 1) {
+                std::cout << "✓ SignUp Success!\n";
+                if (use_otp) {
+                    std::cout << "\n=== OTP Setup Information ===\n";
+                    std::cout << "OTP URI: " << signup_res.value("otp_uri", "") << "\n";
+                    std::cout << "\n=== Recovery Codes (Save these safely!) ===\n";
+                    if (signup_res.contains("recovery_codes")) {
+                        for (const auto& code : signup_res["recovery_codes"]) {
+                            std::cout << "- " << code.get<std::string>() << "\n";
+                        }
+                    }
+                    std::cout << "\n=== QR Code SVG ===\n";
+                    std::cout << signup_res.value("qr_code_svg", "") << "\n";
+                    std::cout << "\nScan the QR code with your authenticator app!\n";
+                } else {
+                    std::cout << "(OTP/복구코드 없이 계정이 생성되었습니다)\n";
+                }
+            } else {
+                std::cout << "✗ SignUp Failed: User may already exist\n";
+            }
         }
-        json root;
-        if (action == 1) root["request_id"] = 8;
-        else if (action == 2) root["request_id"] = 9;
-        root["data"] = { {"id", id}, {"passwd", passwd} };
-        std::string out = root.dump();
-        std::cout << "[Debug][Client] Request JSON: " << out << std::endl;
-
-        uint32_t len = htonl(static_cast<uint32_t>(out.size()));
-        std::cout << "[Debug][Client] Sending length prefix: " << out.size() << std::endl;
-        if (!sendAll(ssl, reinterpret_cast<const char*>(&len), sizeof(len))) break;
-        std::cout << "[Debug][Client] Length prefix sent" << std::endl;
-        if (!sendAll(ssl, out.c_str(), out.size())) break;
-        std::cout << "[Debug][Client] Payload sent" << std::endl;
-
-        // Receive response length
-        uint32_t net_len;
-        if (!recvAll(ssl, reinterpret_cast<char*>(&net_len), sizeof(net_len))) break;
-        uint32_t res_len = ntohl(net_len);
-        std::cout << "[Debug][Client] Received response length: " << res_len << std::endl;
-        std::vector<char> buf(res_len);
-        if (!recvAll(ssl, buf.data(), res_len)) break;
-        std::string resp(out.begin(), out.end()); // reuse container
-        std::string respStr(buf.begin(), buf.end());
-        std::cout << "[Debug][Client] Response JSON: " << respStr << std::endl;
-        json res = json::parse(buf);
-        if (action == 1)
-            std::cout << "Login success: " << res.value("login_success", 0) << "\n";
-        else if (action == 2)
-            std::cout << "SignUp success: " << res.value("sign_up_success", 0) << "\n";
     }
 
     SSL_shutdown(ssl);

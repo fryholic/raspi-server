@@ -54,6 +54,14 @@ struct VerticalLineEquation {
 struct Account {
   string id;
   string passwd;
+  string otp_secret;
+  bool use_otp;
+};
+
+struct RecoveryCode {
+    string id;
+    string code;
+    int used;
 };
 
 void create_table_detections(SQLite::Database& db);
@@ -102,3 +110,13 @@ Account* select_data_accounts(SQLite::Database& db, string id, string passwd);
 bool insert_data_accounts(SQLite::Database& db, Account account);
 
 Account* get_account_by_id(SQLite::Database& db, const string& id);
+
+void create_table_recovery_codes(SQLite::Database& db);
+
+bool store_otp_secret(SQLite::Database& db, const string& id, const string& secret);
+
+bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<string>& codes);
+
+bool verify_recovery_code(SQLite::Database& db, const string& id, const string& code);
+
+bool invalidate_recovery_code(SQLite::Database& db, const string& id, const string& code);

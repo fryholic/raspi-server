@@ -9,5 +9,15 @@ select * from verticalLineEquations;
 delete from lines;
 delete from baseLines;
 delete from verticalLineEquations;
+delete from accounts;
+
+CREATE TABLE IF NOT EXISTS recovery_codes (
+    id TEXT NOT NULL,
+    code TEXT NOT NULL,
+    used INTEGER DEFAULT 0,
+    FOREIGN KEY(id) REFERENCES accounts(id)
+);
+
+ALTER TABLE accounts ADD COLUMN otp_secret TEXT;
 
 SELECT 'Reset Complete';

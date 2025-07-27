@@ -80,7 +80,7 @@ void delete_all_data_detections(SQLite::Database& db) {
 
 void create_table_lines(SQLite::Database& db) {
   db.exec(
-      "CREATE TABLE IF NOT EXISTS lines ("
+      "CREATE TABLE IF NOT EXISTS lines (" 
       "indexNum INTEGER PRIMARY KEY NOT NULL, "
       "x1 INTEGER NOT NULL , "
       "y1 INTEGER NOT NULL , "
@@ -183,7 +183,7 @@ bool delete_all_data_lines(SQLite::Database& db) {
 
 void create_table_baseLines(SQLite::Database& db) {
   db.exec(
-      "CREATE TABLE IF NOT EXISTS baseLines ("
+      "CREATE TABLE IF NOT EXISTS baseLines (" 
       "indexNum INTEGER PRIMARY KEY, "
       "matrixNum1 INTEGER NOT NULL, "
       "x1 INTEGER NOT NULL, "
@@ -292,7 +292,7 @@ bool delete_all_data_baseLines(SQLite::Database& db) {
 
 void create_table_verticalLineEquations(SQLite::Database& db) {
   db.exec(
-      "CREATE TABLE IF NOT EXISTS verticalLineEquations ("
+      "CREATE TABLE IF NOT EXISTS verticalLineEquations (" 
       "indexNum INTEGER PRIMARY KEY, "
       "a REAL NOT NULL, "
       "b REAL NOT NULL)");
@@ -366,9 +366,11 @@ bool delete_all_data_verticalLineEquations(SQLite::Database& db) {
 
 void create_table_accounts(SQLite::Database& db) {
   db.exec(
-      "CREATE TABLE IF NOT EXISTS accounts ("
+      "CREATE TABLE IF NOT EXISTS accounts (" 
       "id TEXT PRIMARY KEY, "
-      "passwd TEXT NOT NULL)"
+      "passwd TEXT NOT NULL, "
+      "otp_secret TEXT, "
+      "use_otp INTEGER DEFAULT 0)"
   );
   cout << "'accounts' 테이블이 준비되었습니다.\n";
   return;
@@ -405,9 +407,11 @@ Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
 bool insert_data_accounts(SQLite::Database& db, Account account) {
   try {
     SQLite::Statement query(
-        db, "INSERT INTO accounts (id, passwd) VALUES (?, ?)");
+        db, "INSERT INTO accounts (id, passwd, otp_secret, use_otp) VALUES (?, ?, ?, ?)");
     query.bind(1, account.id);
     query.bind(2, account.passwd);
+    query.bind(3, account.otp_secret);
+    query.bind(4, account.use_otp ? 1 : 0);
     cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
     query.exec();
 
@@ -421,15 +425,16 @@ bool insert_data_accounts(SQLite::Database& db, Account account) {
 
 Account* get_account_by_id(SQLite::Database& db, const string& id) {
     try {
-        // 오직 ID만으로 계정을 조회하는 SQL 쿼리
-        SQLite::Statement query(db, "SELECT id, passwd FROM accounts WHERE id = ?");
+        // use_otp도 함께 조회
+        SQLite::Statement query(db, "SELECT id, passwd, otp_secret, use_otp FROM accounts WHERE id = ?");
         query.bind(1, id);
 
         if (query.executeStep()) { // 행이 존재하는 경우 (사용자를 찾음)
-            // 동적으로 Account 객체를 생성하여 반환
             Account* acc = new Account{
                 query.getColumn(0).getString(), // id
-                query.getColumn(1).getString()  // passwd (hashed)
+                query.getColumn(1).getString(),  // passwd (hashed)
+                query.getColumn(2).getString(), // otp_secret
+                query.getColumn(3).getInt() == 1 // use_otp
             };
             return acc;
         } else {
@@ -439,5 +444,72 @@ Account* get_account_by_id(SQLite::Database& db, const string& id) {
     } catch (const std::exception& e) {
         cerr << "[DB 에러] ID로 계정 조회 중 예외 발생: " << e.what() << endl;
         return nullptr;
+    }
+}
+
+void create_table_recovery_codes(SQLite::Database& db) {
+    db.exec(
+        "CREATE TABLE IF NOT EXISTS recovery_codes (" 
+        "id TEXT NOT NULL, "
+        "code TEXT NOT NULL, "
+        "used INTEGER DEFAULT 0, "
+        "FOREIGN KEY(id) REFERENCES accounts(id))");
+    cout << "'recovery_codes' 테이블이 준비되었습니다.\n";
+}
+
+bool store_otp_secret(SQLite::Database& db, const string& id, const string& secret) {
+    try {
+        SQLite::Statement query(db, "UPDATE accounts SET otp_secret = ? WHERE id = ?");
+        query.bind(1, secret);
+        query.bind(2, id);
+        query.exec();
+        return true;
+    } catch (const std::exception& e) {
+        cerr << "[DB 에러] OTP secret 저장 실패: " << e.what() << endl;
+        return false;
+    }
+}
+
+bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<string>& codes) {
+    try {
+        SQLite::Transaction transaction(db);
+        SQLite::Statement query(db, "INSERT INTO recovery_codes (id, code) VALUES (?, ?)");
+        for (const auto& code : codes) {
+            query.bind(1, id);
+            query.bind(2, code);
+            query.exec();
+            query.reset();
+        }
+        transaction.commit();
+        return true;
+    } catch (const std::exception& e) {
+        cerr << "[DB 에러] 복구 코드 저장 실패: " << e.what() << endl;
+        return false;
+    }
+}
+
+bool verify_recovery_code(SQLite::Database& db, const string& id, const string& code) {
+    try {
+        SQLite::Statement query(db, "SELECT COUNT(*) FROM recovery_codes WHERE id = ? AND code = ? AND used = 0");
+        query.bind(1, id);
+        query.bind(2, code);
+        query.executeStep();
+        return query.getColumn(0).getInt() > 0;
+    } catch (const std::exception& e) {
+        cerr << "[DB 에러] 복구 코드 검증 실패: " << e.what() << endl;
+        return false;
+    }
+}
+
+bool invalidate_recovery_code(SQLite::Database& db, const string& id, const string& code) {
+    try {
+        SQLite::Statement query(db, "UPDATE recovery_codes SET used = 1 WHERE id = ? AND code = ?");
+        query.bind(1, id);
+        query.bind(2, code);
+        query.exec();
+        return true;
+    } catch (const std::exception& e) {
+        cerr << "[DB 에러] 복구 코드 무효화 실패: " << e.what() << endl;
+        return false;
     }
 }

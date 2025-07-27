@@ -1,7 +1,13 @@
 #include "tcp_server.hpp"
+
 #include <unordered_map>
 #include <memory>
 #include <random>
+
+#include "server_bbox.hpp"
+#include "metadata_parser.hpp"
+#include <thread>
+
 
 /*
 
@@ -513,8 +519,10 @@ void handle_client(int client_socket, SQLite::Database& db,
 
 
   atomic<bool> bbox_push_enabled(false);
-  // BBox push 쓰레드
+  atomic<bool> metadata_parsing_enabled(false);
+  // BBox push 쓰레드와 메타데이터 파싱 쓰레드
   thread push_thread;
+  thread metadata_thread;
 
 
 
@@ -858,10 +866,21 @@ void handle_client(int client_socket, SQLite::Database& db,
                << "] DB 삽입 완료 (Lock 해제)" << endl;
         }
         // --- 보호 끝 ---
+        // 바뀐 매트릭스 번호가 있다면 업데이트
+        bool updateSuccess;
+        {
+          std::lock_guard<std::mutex> lock(db_mutex);
+          cout << "[Thread " << std::this_thread::get_id()
+               << "] DB 수정 시작 (Lock 획득)" << endl;
+          updateSuccess = update_data_baseLines(db, baseLine);
+          cout << "[Thread " << std::this_thread::get_id()
+               << "] DB 수정 완료 (Lock 해제)" << endl;
+        }
 
         json root;
         root["request_id"] = 14;
         root["insert_success"] = (insertSuccess == true) ? 1 : 0;
+        root["update_success"] = (updateSuccess == true) ? 1 : 0;
         json_string = root.dump();
 
         uint32_t res_len = json_string.length();
@@ -1099,6 +1118,8 @@ void handle_client(int client_socket, SQLite::Database& db,
           try {
               string hashed_passwd = hash_password(passwd);
               cout << "[회원가입] 비밀번호 해싱 완료 (ID: " << id << ")" << endl;
+              memset(&passwd[0], 0, passwd.length()); // 평문 비밀번호 해싱 후 메모리에서 즉시 삭제
+              passwd.clear();
 
               // 평문 비밀번호 메모리에서 즉시 삭제
               memset(&passwd[0], 0, passwd.length());
@@ -1165,6 +1186,11 @@ void handle_client(int client_socket, SQLite::Database& db,
           cout << "[응답] 회원가입 결과 전송 완료." << endl;
       }
       else if (received_json.value("request_id", -1) == 20 && !bbox_push_enabled) {
+        // 메타데이터 파싱 시작
+        start_metadata_parser();
+        metadata_thread = std::thread(parse_metadata);
+
+        // bbox push 스레드 시작
         bbox_push_enabled = true;
         push_thread = std::thread([ssl, &bbox_push_enabled, &ssl_write_mutex]() {
             while (bbox_push_enabled) {
@@ -1175,8 +1201,13 @@ void handle_client(int client_socket, SQLite::Database& db,
       }
 
       else if (received_json.value("request_id", -1) == 21 && bbox_push_enabled) {
+          // bbox push 중지
           bbox_push_enabled = false;
           if (push_thread.joinable()) push_thread.join();
+
+          // 메타데이터 파싱 중지
+          stop_metadata_parser();
+          if (metadata_thread.joinable()) metadata_thread.join();
       }
 
       cout << "JSON 송신 성공 : (" << json_string.size() << " 바이트):\n"
@@ -1189,7 +1220,10 @@ void handle_client(int client_socket, SQLite::Database& db,
 
   // 연결 종료 직전 정리
   bbox_push_enabled = false;
+  metadata_parsing_enabled = false;
+  
   if (push_thread.joinable()) push_thread.join();
+  if (metadata_thread.joinable()) metadata_thread.join();
 
   close(client_socket);
   printNowTimeKST();
@@ -1315,48 +1349,6 @@ ssize_t sendAll(SSL* ssl, const char* buffer, size_t len, int flags) {
   return total_sent;
 }
 
-// 일반 소켓 버전의 송수신 함수
-// bool recvAll(int socket_fd, char* buffer, size_t len) {
-//     size_t total_received = 0;
-//     while (total_received < len) {
-//         ssize_t bytes_received = recv(socket_fd, buffer + total_received, len
-//         - total_received, 0);
-
-//         if (bytes_received == -1) {
-//             if (errno == EINTR) continue;
-//             cerr << "recv 에러: " << strerror(errno) << endl;
-//             return false;
-//         }
-//         if (bytes_received == 0) {
-//             cerr << "데이터 수신 중 클라이언트 연결 종료" << endl;
-//             return false;
-//         }
-//         total_received += bytes_received;
-//     }
-//     return true;
-// }
-
-// ssize_t sendAll(int socket_fd, const char* buffer, size_t len, int flags) {
-//     size_t total_sent = 0;
-//     while (total_sent < len) {
-//         ssize_t bytes_sent = send(socket_fd, buffer + total_sent, len -
-//         total_sent, flags);
-
-//         if (bytes_sent == -1) {
-//             if (errno == EINTR) {
-//                 continue;
-//             }
-//             return -1;
-//         }
-
-//         if (bytes_sent == 0) {
-//             return total_sent;
-//         }
-//         total_sent += bytes_sent;
-//     }
-//     return total_sent;
-// }
-
 void printNowTimeKST() {
   // 한국 시간 (KST), 밀리초 포함 출력
   chrono::system_clock::time_point now = chrono::system_clock::now();
@@ -1416,15 +1408,16 @@ bool send_bboxes_to_client(SSL* ssl) {
     json bbox_array = json::array();
     {
         std::lock_guard<std::mutex> lock(bbox_mutex);
-        for (const BBox& box : latest_bboxes) {
+        std::cout << "[TCP Server] Current bbox count: " << latest_bboxes.size() << std::endl;
+        for (const ServerBBox& box : latest_bboxes) {
             json j = {
-                {"object_id", box.object_id},
+                {"id", box.object_id},
                 {"type", box.type},
                 {"confidence", box.confidence},
-                {"left", box.left},
-                {"top", box.top},
-                {"right", box.right},
-                {"bottom", box.bottom}
+                {"x", box.left},
+                {"y", box.top},
+                {"width", box.right - box.left},
+                {"height", box.bottom - box.top}
             };
             bbox_array.push_back(j);
         }
@@ -1435,10 +1428,18 @@ bool send_bboxes_to_client(SSL* ssl) {
     };
 
     std::string json_str = response.dump();
+    uint32_t res_len = json_str.length();
+    uint32_t net_res_len = htonl(res_len);
+
     {
         std::lock_guard<std::mutex> lock(ssl_write_mutex);
-        int ret = SSL_write(ssl, json_str.c_str(), json_str.length());
-        return ret > 0;
+        // 먼저 4바이트 길이 접두사 전송
+        if (sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0) == -1) {
+            return false;
+        }
+        // 그 다음 실제 JSON 데이터 전송
+        int ret = sendAll(ssl, json_str.c_str(), res_len, 0);
+        return ret != -1;
     }
 }
 

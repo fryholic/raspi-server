@@ -246,6 +246,30 @@ bool insert_data_baseLines(SQLite::Database& db, BaseLine baseLine) {
   return true;
 }
 
+bool update_data_baseLines(SQLite::Database& db, BaseLine baseLine){
+  try {
+    // SQL 인젝션 방지를 위해 Prepared Statement 사용
+    SQLite::Statement query(
+        db,
+        "UPDATE baseLines "
+        "SET matrixNum1 = ?, matrixNum2 = ? "
+        "WHERE indexNum = ?");
+    query.bind(1, baseLine.matrixNum1);
+    query.bind(2, baseLine.matrixNum2);
+    query.bind(3, baseLine.index);
+
+    cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
+    query.exec();
+
+    cout << "데이터 수정: (기준선 인덱스: " << baseLine.index << ")" << endl;
+  } catch (const exception& e) {
+    // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
+    cerr << "데이터 '" << baseLine.index << "' 수정 실패: " << e.what() << endl;
+    return false;
+  }
+  return true;
+}
+
 bool delete_all_data_baseLines(SQLite::Database& db) {
   try {
     SQLite::Statement query(db, "DELETE FROM baselines");

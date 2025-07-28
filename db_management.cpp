@@ -501,6 +501,17 @@ bool verify_recovery_code(SQLite::Database& db, const string& id, const string& 
     }
 }
 
+bool verify_recovery_code(SQLite::Database& db, const std::string& id, const std::string& input) {
+    // DB에서 해당 id의 해시된 복구 코드 목록을 가져옴
+    std::vector<std::string> hashed_codes = get_hashed_recovery_codes(db, id);
+    for (const auto& hashed : hashed_codes) {
+        if (verify_password(hashed, input)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool invalidate_recovery_code(SQLite::Database& db, const string& id, const string& code) {
     try {
         SQLite::Statement query(db, "UPDATE recovery_codes SET used = 1 WHERE id = ? AND code = ?");
@@ -513,3 +524,18 @@ bool invalidate_recovery_code(SQLite::Database& db, const string& id, const stri
         return false;
     }
 }
+
+std::vector<std::string> get_hashed_recovery_codes(SQLite::Database& db, const std::string& id) {
+    std::vector<std::string> codes;
+    try {
+        SQLite::Statement query(db, "SELECT code FROM recovery_codes WHERE id = ? AND used = 0");
+        query.bind(1, id);
+        while (query.executeStep()) {
+            codes.push_back(query.getColumn(0).getString());
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[DB] get_hashed_recovery_codes 예외: " << e.what() << std::endl;
+    }
+    return codes;
+}
+

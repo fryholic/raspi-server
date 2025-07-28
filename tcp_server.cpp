@@ -1150,7 +1150,8 @@ void handle_client(int client_socket, SQLite::Database& db,
                       // OTP secret 저장
                       store_otp_secret(db, id, otp_secret);
                       // 복구 코드 저장
-                      store_recovery_codes(db, id, recovery_codes);
+                      auto hashed_codes = hash_recovery_codes(recovery_codes);
+                      store_recovery_codes(db, id, hashed_codes);
                   }
               }
 
@@ -1374,6 +1375,21 @@ void printNowTimeKST() {
        << setw(3) << milliseconds << " KST]" << endl;
 }
 
+/*
+=================================================================
+ * 비밀번호 해싱 및 검증 함수들
+ * 이 부분은 Argon2id 알고리즘을 사용하여 비밀번호를 안전하게 해싱하고 검증합니다.
+ * Libsodium 라이브러리를 사용합니다.
+ * 
+ * 주의: 이 코드는 libsodium이 설치되어 있어야 하며, C++ 프로젝트에
+ *       libsodium 헤더와 라이브러리를 포함해야 합니다.
+ * 
+ * 예시:
+ *   string hashed = hash_password("my_secure_password");
+ *   bool is_valid = verify_password(hashed, "my_secure_password");
+==================================================================
+*/
+
 /**
  * @brief Argon2id를 사용하여 비밀번호를 해싱합니다.
  *
@@ -1408,9 +1424,33 @@ bool verify_password(const string& hashed_password, const string& password) {
     return result == 0;
 }
 
+std::vector<std::string> hash_recovery_codes(const std::vector<std::string>& codes) {
+    std::vector<std::string> hashed_codes;
+    for (const auto& code : codes) {
+        hashed_codes.push_back(hash_password(code));
+    }
+    return hashed_codes;
+}
+
+bool verify_recovery_code(SQLite::Database& db, const std::string& id, const std::string& input) {
+    // DB에서 해당 id의 해시된 복구 코드 목록을 가져옴
+    std::vector<std::string> hashed_codes = get_hashed_recovery_codes(db, id);
+    for (const auto& hashed : hashed_codes) {
+        if (verify_password(hashed, input)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 
-// =======
+/* 
+ * ===================================================================
+ * 바운딩 박스 전송 함수
+ * 이 함수는 최신 바운딩 박스를 클라이언트에게 JSON 형식으로 전송합니다.
+ * SSL을 사용하여 안전하게 데이터를 전송합니다.
+ * ===================================================================
+*/
 
 // 바운딩 박스 전송 함수
 bool send_bboxes_to_client(SSL* ssl) {

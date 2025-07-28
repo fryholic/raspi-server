@@ -1105,7 +1105,7 @@ void handle_client(int client_socket, SQLite::Database& db,
           cout << "[회원가입] 회원가입 요청 수신" << endl;
           string id = received_json["data"].value("id", "");
           string passwd = received_json["data"].value("passwd", "");
-          bool use_otp = received_json["data"].value("use_otp", true); // 기본값 true
+          bool use_otp = received_json["data"].value("use_otp", false); // 기본값 false
 
           json root;
           root["request_id"] = 20;
@@ -1118,8 +1118,6 @@ void handle_client(int client_socket, SQLite::Database& db,
           try {
               string hashed_passwd = hash_password(passwd);
               cout << "[회원가입] 비밀번호 해싱 완료 (ID: " << id << ")" << endl;
-              memset(&passwd[0], 0, passwd.length()); // 평문 비밀번호 해싱 후 메모리에서 즉시 삭제
-              passwd.clear();
 
               // 평문 비밀번호 메모리에서 즉시 삭제
               memset(&passwd[0], 0, passwd.length());
@@ -1185,7 +1183,7 @@ void handle_client(int client_socket, SQLite::Database& db,
           sendAll(ssl, json_string.c_str(), res_len, 0);
           cout << "[응답] 회원가입 결과 전송 완료." << endl;
       }
-      else if (received_json.value("request_id", -1) == 20 && !bbox_push_enabled) {
+      else if (received_json.value("request_id", -1) == 23 && !bbox_push_enabled) {
         // 메타데이터 파싱 시작
         start_metadata_parser();
         metadata_thread = std::thread(parse_metadata);
@@ -1200,7 +1198,7 @@ void handle_client(int client_socket, SQLite::Database& db,
         });
       }
 
-      else if (received_json.value("request_id", -1) == 21 && bbox_push_enabled) {
+      else if (received_json.value("request_id", -1) == 24 && bbox_push_enabled) {
           // bbox push 중지
           bbox_push_enabled = false;
           if (push_thread.joinable()) push_thread.join();

@@ -1105,7 +1105,7 @@ void handle_client(int client_socket, SQLite::Database& db,
           cout << "[회원가입] 회원가입 요청 수신" << endl;
           string id = received_json["data"].value("id", "");
           string passwd = received_json["data"].value("passwd", "");
-          bool use_otp = received_json["data"].value("use_otp", false); // 기본값 false
+          bool use_otp = received_json["data"].value("use_otp", true); // 기본값 true
 
           json root;
           root["request_id"] = 20;
@@ -1183,29 +1183,40 @@ void handle_client(int client_socket, SQLite::Database& db,
           sendAll(ssl, json_string.c_str(), res_len, 0);
           cout << "[응답] 회원가입 결과 전송 완료." << endl;
       }
-      else if (received_json.value("request_id", -1) == 23 && !bbox_push_enabled) {
+      else if (received_json.value("request_id", -1) == 31 && !bbox_push_enabled) {
         // 메타데이터 파싱 시작
+        cout << "[TCP Server] Starting metadata parser..." << endl;
         start_metadata_parser();
         metadata_thread = std::thread(parse_metadata);
 
         // bbox push 스레드 시작
         bbox_push_enabled = true;
+        cout << "[TCP Server] Starting bbox push thread..." << endl;
         push_thread = std::thread([ssl, &bbox_push_enabled, &ssl_write_mutex]() {
+            cout << "[TCP Server] Bbox push thread started, will send every 200ms" << endl;
             while (bbox_push_enabled) {
-                send_bboxes_to_client(ssl);  // 기존 방식처럼 함수 호출로 통일
+                bool success = send_bboxes_to_client(ssl);  // 기존 방식처럼 함수 호출로 통일
+                if (!success) {
+                    cout << "[TCP Server] Failed to send bboxes, stopping thread" << endl;
+                    break;
+                }
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
             }
+            cout << "[TCP Server] Bbox push thread ended" << endl;
         });
       }
 
-      else if (received_json.value("request_id", -1) == 24 && bbox_push_enabled) {
+      else if (received_json.value("request_id", -1) == 32 && bbox_push_enabled) {
           // bbox push 중지
+          cout << "[TCP Server] Stopping bbox push..." << endl;
           bbox_push_enabled = false;
           if (push_thread.joinable()) push_thread.join();
 
           // 메타데이터 파싱 중지
+          cout << "[TCP Server] Stopping metadata parser..." << endl;
           stop_metadata_parser();
           if (metadata_thread.joinable()) metadata_thread.join();
+          cout << "[TCP Server] Bbox push and metadata parser stopped" << endl;
       }
 
       cout << "JSON 송신 성공 : (" << json_string.size() << " 바이트):\n"
@@ -1406,8 +1417,11 @@ bool send_bboxes_to_client(SSL* ssl) {
     json bbox_array = json::array();
     {
         std::lock_guard<std::mutex> lock(bbox_mutex);
-        std::cout << "[TCP Server] Current bbox count: " << latest_bboxes.size() << std::endl;
+        // std::cout << "[TCP Server] Current bbox count: " << latest_bboxes.size() << std::endl;
         for (const ServerBBox& box : latest_bboxes) {
+            // std::cout << "[TCP Server] Processing bbox: id=" << box.object_id 
+            //          << ", type=" << box.type << ", confidence=" << box.confidence
+            //          << ", coords=(" << box.left << "," << box.top << "," << box.right << "," << box.bottom << ")" << std::endl;
             json j = {
                 {"id", box.object_id},
                 {"type", box.type},
@@ -1426,17 +1440,25 @@ bool send_bboxes_to_client(SSL* ssl) {
     };
 
     std::string json_str = response.dump();
+    // std::cout << "[TCP Server] Sending JSON response: " << json_str.substr(0, 200) << "..." << std::endl;
     uint32_t res_len = json_str.length();
     uint32_t net_res_len = htonl(res_len);
+    // std::cout << "[TCP Server] Response length: " << res_len << " bytes" << std::endl;
 
     {
         std::lock_guard<std::mutex> lock(ssl_write_mutex);
         // 먼저 4바이트 길이 접두사 전송
         if (sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0) == -1) {
+            std::cout << "[TCP Server] Failed to send length prefix" << std::endl;
             return false;
         }
         // 그 다음 실제 JSON 데이터 전송
         int ret = sendAll(ssl, json_str.c_str(), res_len, 0);
+        if (ret == -1) {
+            std::cout << "[TCP Server] Failed to send JSON data" << std::endl;
+        } else {
+            // std::cout << "[TCP Server] Successfully sent " << ret << " bytes" << std::endl;
+        }
         return ret != -1;
     }
 }

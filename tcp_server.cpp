@@ -1105,7 +1105,7 @@ void handle_client(int client_socket, SQLite::Database& db,
           cout << "[회원가입] 회원가입 요청 수신" << endl;
           string id = received_json["data"].value("id", "");
           string passwd = received_json["data"].value("passwd", "");
-          bool use_otp = received_json["data"].value("use_otp", false); 
+          bool use_otp = received_json["data"].value("use_otp", true); // 기본값 true
 
           json root;
           root["request_id"] = 20;
@@ -1118,8 +1118,6 @@ void handle_client(int client_socket, SQLite::Database& db,
           try {
               string hashed_passwd = hash_password(passwd);
               cout << "[회원가입] 비밀번호 해싱 완료 (ID: " << id << ")" << endl;
-              memset(&passwd[0], 0, passwd.length()); // 평문 비밀번호 해싱 후 메모리에서 즉시 삭제
-              passwd.clear();
 
               // 평문 비밀번호 메모리에서 즉시 삭제
               memset(&passwd[0], 0, passwd.length());

@@ -41,22 +41,32 @@ void parse_metadata() {
     std::regex object_regex("<tt:Object ObjectId=\"(\\d+)\">.*?<tt:BoundingBox left=\"(\\d+\\.?\\d*)\" top=\"(\\d+\\.?\\d*)\" right=\"(\\d+\\.?\\d*)\" bottom=\"(\\d+\\.?\\d*)\"/>(.*?)</tt:Object>");
     std::regex class_regex("<tt:ClassCandidate>\\s*<tt:Type>(\\w+)</tt:Type>\\s*<tt:Likelihood>([\\d\\.]+)</tt:Likelihood>");
 
+    cout << "[MetadataParser] Started parsing metadata..." << endl;
+    
     while (parser_running && !feof(pipe)) {
         size_t bytes = fread(buffer, 1, BUFFER_SIZE - 1, pipe);
         if (bytes <= 0) continue;
         buffer[bytes] = '\0';
         xml_buffer += buffer;
+        
+        cout << "[Debug] Read " << bytes << " bytes from ffmpeg pipe" << endl;
 
         size_t end_pos;
         while (parser_running && (end_pos = xml_buffer.find("</tt:MetadataStream>")) != string::npos) {
             string packet = xml_buffer.substr(0, end_pos);
             xml_buffer.erase(0, end_pos + strlen("</tt:MetadataStream>"));
+            
+            cout << "[Debug] Found MetadataStream packet, length: " << packet.length() << endl;
+            cout << "[Debug] Packet content (first 200 chars): " << packet.substr(0, 200) << "..." << endl;
 
             vector<ServerBBox> parsed_boxes;
             sregex_iterator iter(packet.begin(), packet.end(), object_regex);
             sregex_iterator end;
+            
+            cout << "[Debug] Starting regex matching..." << endl;
 
             for (; iter != end; ++iter) {
+                cout << "[Debug] Found Object match! ObjectId: " << (*iter)[1] << endl;
                 ServerBBox box;
                 // Corrected group indices based on the new regex
                 box.object_id = stoi((*iter)[1]);
@@ -66,6 +76,9 @@ void parse_metadata() {
                 box.top = static_cast<int>(stof((*iter)[3]));
                 box.right = static_cast<int>(stof((*iter)[4]));
                 box.bottom = static_cast<int>(stof((*iter)[5]));
+                
+                cout << "[Debug] BBox coords: left=" << box.left << ", top=" << box.top 
+                     << ", right=" << box.right << ", bottom=" << box.bottom << endl;
 
                 // Extract the inner content for class parsing
                 string inner_content = (*iter)[6]; // Group 6 is the inner content
@@ -74,14 +87,19 @@ void parse_metadata() {
                 if (regex_search(inner_content, class_match, class_regex)) {
                     box.type = class_match[1]; // Use std::string directly
                     box.confidence = stof(class_match[2]);
+                    cout << "[Debug] Found class info: type=" << box.type << ", confidence=" << box.confidence << endl;
                 } else {
                     // Handle cases where class info might be missing or not matched
                     box.type = "Unknown";
                     box.confidence = 0.0f;
+                    cout << "[Debug] No class info found, using defaults" << endl;
                 }
 
                 parsed_boxes.push_back(box);
+                cout << "[Debug] Added box to parsed_boxes. Total count: " << parsed_boxes.size() << endl;
             }
+            
+            cout << "[Debug] Finished processing packet. Total boxes found: " << parsed_boxes.size() << endl;
 
             if (!parsed_boxes.empty()) {
                 lock_guard<mutex> lock(bbox_mutex);

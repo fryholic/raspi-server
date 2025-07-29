@@ -13,3 +13,5 @@ server.key
 *.srl
 *.cnf
 *.csr
+
+*.sql

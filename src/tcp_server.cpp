@@ -19,6 +19,12 @@ std::mutex ssl_write_mutex;
 
 SSL_CTX* ssl_ctx = nullptr;
 
+// BBox 버퍼링 관련 전역 변수
+std::atomic<int> bbox_buffer_delay_ms(2400);   // 기본값 1초
+std::atomic<int> bbox_send_interval_ms(50);   // 기본값 200ms
+std::queue<TimestampedBBox> bbox_buffer;
+std::mutex bbox_buffer_mutex;
+
 // OTP 관련 전역 변수
 std::unordered_map<std::string, std::unique_ptr<cotp::TOTP>> user_otps;
 
@@ -1203,14 +1209,25 @@ void handle_client(int client_socket, SQLite::Database& db,
         bbox_push_enabled = true;
         cout << "[TCP Server] Starting bbox push thread..." << endl;
         push_thread = std::thread([ssl, &bbox_push_enabled, &ssl_write_mutex]() {
-            cout << "[TCP Server] Bbox push thread started, will send every 200ms" << endl;
+            cout << "[TCP Server] Bbox push thread started with " 
+                 << bbox_send_interval_ms.load() << "ms interval and " 
+                 << bbox_buffer_delay_ms.load() << "ms delay" << endl;
+            
+            auto next_send_time = std::chrono::steady_clock::now();
+            
             while (bbox_push_enabled) {
-                bool success = send_bboxes_to_client(ssl);  // 기존 방식처럼 함수 호출로 통일
-                if (!success) {
-                    cout << "[TCP Server] Failed to send bboxes, stopping thread" << endl;
-                    break;
+                auto now = std::chrono::steady_clock::now();
+                if (now >= next_send_time) {
+                    bool success = send_bboxes_to_client(ssl);
+                    if (!success) {
+                        cout << "[TCP Server] Failed to send bboxes, stopping thread" << endl;
+                        break;
+                    }
+                    // 다음 전송 시간 설정
+                    next_send_time = now + std::chrono::milliseconds(bbox_send_interval_ms.load());
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                // 더 자주 체크하도록 sleep 시간 단축
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
             cout << "[TCP Server] Bbox push thread ended" << endl;
         });
@@ -1226,6 +1243,10 @@ void handle_client(int client_socket, SQLite::Database& db,
           cout << "[TCP Server] Stopping metadata parser..." << endl;
           stop_metadata_parser();
           if (metadata_thread.joinable()) metadata_thread.join();
+          
+          // 버퍼 정리 (오래된 데이터 제거)
+          clear_bbox_buffer();
+          
           cout << "[TCP Server] Bbox push and metadata parser stopped" << endl;
       }
 
@@ -1394,38 +1415,123 @@ void printNowTimeKST() {
  * ===================================================================
 */
 
-// 바운딩 박스 전송 함수
-bool send_bboxes_to_client(SSL* ssl) {
-    json bbox_array = json::array();
-    {
-        std::lock_guard<std::mutex> lock(bbox_mutex);
-        // std::cout << "[TCP Server] Current bbox count: " << latest_bboxes.size() << std::endl;
-        for (const ServerBBox& box : latest_bboxes) {
-            // std::cout << "[TCP Server] Processing bbox: id=" << box.object_id 
-            //          << ", type=" << box.type << ", confidence=" << box.confidence
-            //          << ", coords=(" << box.left << "," << box.top << "," << box.right << "," << box.bottom << ")" << std::endl;
-            json j = {
-                {"id", box.object_id},
-                {"type", box.type},
-                {"confidence", box.confidence},
-                {"x", box.left},
-                {"y", box.top},
-                {"width", box.right - box.left},
-                {"height", box.bottom - box.top}
-            };
-            bbox_array.push_back(j);
+// BBox 버퍼 정리 함수
+void clear_bbox_buffer() {
+    std::lock_guard<std::mutex> lock(bbox_buffer_mutex);
+    
+    // 버퍼의 모든 데이터 제거
+    std::queue<TimestampedBBox> empty_queue;
+    bbox_buffer.swap(empty_queue);
+    
+    std::cout << "[BUFFER] Buffer cleared completely" << std::endl;
+}
+
+// BBox 버퍼 업데이트 함수
+void update_bbox_buffer(const std::vector<ServerBBox>& new_bboxes) {
+    std::lock_guard<std::mutex> lock(bbox_buffer_mutex);
+    
+    // 새로운 bbox 데이터를 타임스탬프와 함께 버퍼에 저장
+    TimestampedBBox data{
+        std::chrono::steady_clock::now(),
+        new_bboxes
+    };
+    bbox_buffer.push(data);
+    
+    // 버퍼 크기 관리 (너무 많은 데이터가 쌓이지 않도록)
+    auto now = std::chrono::steady_clock::now();
+    int removed_count = 0;
+    
+    // 1. 10초보다 오래된 데이터 제거
+    while (!bbox_buffer.empty()) {
+        const auto& oldest = bbox_buffer.front();
+        auto age = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - oldest.timestamp).count();
+            
+        if (age > 10000) {  // 10초보다 오래된 데이터 제거
+            bbox_buffer.pop();
+            removed_count++;
+        } else {
+            break;
         }
     }
+    
+    // 2. 버퍼 크기가 너무 크면 강제로 오래된 데이터 제거 (최대 50개 유지)
+    while (bbox_buffer.size() > 50) {
+        bbox_buffer.pop();
+        removed_count++;
+    }
+    
+    // 디버그 로그
+    if (removed_count > 0 || bbox_buffer.size() > 10) {
+        std::cout << "[BUFFER] Added 1 item, removed " << removed_count 
+                 << " items, current size: " << bbox_buffer.size() << std::endl;
+    }
+}
+
+// 바운딩 박스 전송 함수 (수정됨)
+bool send_bboxes_to_client(SSL* ssl) {
+    std::vector<ServerBBox> bboxes_to_send;
+    int buffer_size = 0;
+    int processed_count = 0;
+    
+    {
+        std::lock_guard<std::mutex> lock(bbox_buffer_mutex);
+        
+        auto now = std::chrono::steady_clock::now();
+        buffer_size = bbox_buffer.size();
+        
+        // 버퍼에서 지연 시간이 지난 가장 오래된 데이터 찾기
+        while (!bbox_buffer.empty()) {
+            const auto& oldest = bbox_buffer.front();
+            auto age = std::chrono::duration_cast<std::chrono::milliseconds>(
+                now - oldest.timestamp).count();
+                
+            if (age >= bbox_buffer_delay_ms.load()) {
+                bboxes_to_send = oldest.bboxes;
+                bbox_buffer.pop();
+                processed_count++;
+                break;  // 하나만 처리하고 나감
+            }
+            break;  // 지연 시간이 지나지 않은 데이터는 아직 전송하지 않음
+        }
+        
+        // 디버그 로그 추가
+        if (buffer_size > 5) {  // 버퍼에 5개 이상 쌓이면 경고
+            std::cout << "[DEBUG] Buffer getting large: " << buffer_size 
+                     << " items, processed: " << processed_count << std::endl;
+        }
+    }
+    
+    if (bboxes_to_send.empty()) {
+        return true;  // 전송할 데이터가 없음 (에러 아님)
+    }
+
+    json bbox_array = json::array();
+    for (const ServerBBox& box : bboxes_to_send) {
+        json j = {
+            {"id", box.object_id},
+            {"type", box.type},
+            {"confidence", box.confidence},
+            {"x", box.left},
+            {"y", box.top},
+            {"width", box.right - box.left},
+            {"height", box.bottom - box.top}
+        };
+        bbox_array.push_back(j);
+    }
+    
     json response = {
         {"response_id", 200},
-        {"bboxes", bbox_array}
+        {"bboxes", bbox_array},
+        {"buffer_info", {
+            {"buffer_size", buffer_size},
+            {"processed_count", processed_count}
+        }}
     };
 
     std::string json_str = response.dump();
-    // std::cout << "[TCP Server] Sending JSON response: " << json_str.substr(0, 200) << "..." << std::endl;
     uint32_t res_len = json_str.length();
     uint32_t net_res_len = htonl(res_len);
-    // std::cout << "[TCP Server] Response length: " << res_len << " bytes" << std::endl;
 
     {
         std::lock_guard<std::mutex> lock(ssl_write_mutex);
@@ -1438,8 +1544,6 @@ bool send_bboxes_to_client(SSL* ssl) {
         int ret = sendAll(ssl, json_str.c_str(), res_len, 0);
         if (ret == -1) {
             std::cout << "[TCP Server] Failed to send JSON data" << std::endl;
-        } else {
-            // std::cout << "[TCP Server] Successfully sent " << ret << " bytes" << std::endl;
         }
         return ret != -1;
     }

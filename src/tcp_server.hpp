@@ -45,6 +45,19 @@ extern SSL_CTX* ssl_ctx;
 
 #include "metadata_parser.hpp"
 #include <atomic>
+#include <queue>
+
+// BBox 버퍼링을 위한 구조체
+struct TimestampedBBox {
+    std::chrono::steady_clock::time_point timestamp;
+    std::vector<ServerBBox> bboxes;
+};
+
+// 전역 변수 선언
+extern std::atomic<int> bbox_buffer_delay_ms;  // 버퍼 지연 시간 (M ms)
+extern std::atomic<int> bbox_send_interval_ms; // 전송 주기 (N ms)
+extern std::queue<TimestampedBBox> bbox_buffer;
+extern std::mutex bbox_buffer_mutex;
 
 // OTP 관련 헤더
 #include "otp/cotp/cotp.hpp"
@@ -104,3 +117,7 @@ bool verify_password(const string& hashed_password, const string& password);
 
 
 bool send_bboxes_to_client(SSL* ssl);
+
+// BBox 버퍼 관리 함수
+void update_bbox_buffer(const std::vector<ServerBBox>& new_bboxes);
+void clear_bbox_buffer();

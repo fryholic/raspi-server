@@ -4,6 +4,9 @@
 #include <cstdio>
 #include "server_bbox.hpp" // Include the new server-side BBox definition
 
+// tcp_server.hpp에서 선언된 update_bbox_buffer 함수 사용
+void update_bbox_buffer(const std::vector<ServerBBox>& new_bboxes);
+
 using namespace std;
 
 // Use ServerBBox for latest_bboxes
@@ -101,12 +104,17 @@ void parse_metadata() {
             
             cout << "[Debug] Finished processing packet. Total boxes found: " << parsed_boxes.size() << endl;
 
-            if (!parsed_boxes.empty()) {
-                lock_guard<mutex> lock(bbox_mutex);
-                latest_bboxes = move(parsed_boxes);
-                // Use std::cout for server-side debugging
-                cout << "[MetadataParser] Populated latest_bboxes with " << latest_bboxes.size() << " boxes." << endl;
+            // 항상 버퍼에 데이터 추가 (빈 박스 포함)
+            update_bbox_buffer(parsed_boxes);
+            if (parsed_boxes.empty()) {
+                cout << "[MetadataParser] Added empty box data to buffer (no objects detected)." << endl;
+            } else {
+                cout << "[MetadataParser] Added " << parsed_boxes.size() << " boxes to buffer." << endl;
             }
+            
+            // 기존 latest_bboxes도 호환성을 위해 유지
+            lock_guard<mutex> lock(bbox_mutex);
+            latest_bboxes = move(parsed_boxes);
         }
     }
 

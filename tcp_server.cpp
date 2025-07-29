@@ -1183,6 +1183,15 @@ void handle_client(int client_socket, SQLite::Database& db,
           sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
           sendAll(ssl, json_string.c_str(), res_len, 0);
           cout << "[응답] 회원가입 결과 전송 완료." << endl;
+
+          // --- 복구 코드 메모리에서 삭제 ---
+          for (auto& code : recovery_codes) {
+              if (!code.empty()) {
+                  memset(&code[0], 0, code.size());
+              }
+          }
+          recovery_codes.clear();
+          cout << "[Debug] 복구 코드 메모리에서 삭제 완료." << endl;
       }
       else if (received_json.value("request_id", -1) == 31 && !bbox_push_enabled) {
         // 메타데이터 파싱 시작

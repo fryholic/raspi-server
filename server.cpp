@@ -5,9 +5,9 @@
 #include <fstream>
 #include <thread>
 
-#include "db_management.hpp"
-#include "rtsp_server.hpp"
-#include "tcp_server.hpp"
+#include "src/db_management.hpp"
+#include "src/rtsp_server.hpp"
+#include "src/tcp_server.hpp"
 
 using namespace std;
 

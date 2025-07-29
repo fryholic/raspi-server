@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include "../json.hpp"
+#include "../src/json.hpp"
 // libsodium for client-side hash/verify debug
 #include <sodium.h>
 

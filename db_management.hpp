@@ -12,6 +12,9 @@
 // json 처리를 위한 외부 헤더파일
 #include "json.hpp"
 
+// 비밀번호 / 복구코드 해싱을 위한 헤더 파일
+#include "src/hash.hpp"
+
 using namespace std;
 using json = nlohmann::json;
 
@@ -120,3 +123,5 @@ bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<s
 bool verify_recovery_code(SQLite::Database& db, const string& id, const string& code);
 
 bool invalidate_recovery_code(SQLite::Database& db, const string& id, const string& code);
+
+std::vector<std::string> get_hashed_recovery_codes(SQLite::Database& db, const std::string& id);

@@ -29,7 +29,7 @@
 #include <system_error>  // strerror
 
 // json 처리를 위한 외부 헤더파일
-#include "json.hpp"
+#include "src/json.hpp"
 
 // OpenSSL 관련 헤더
 #include <openssl/err.h>
@@ -38,7 +38,7 @@
 extern SSL_CTX* ssl_ctx;
 
 // DB 관련 헤더
-#include "db_management.hpp"
+#include "src/db_management.hpp"
 
 
 
@@ -47,8 +47,8 @@ extern SSL_CTX* ssl_ctx;
 #include <atomic>
 
 // OTP 관련 헤더
-#include "otp/src/cotp/cotp.hpp"
-#include "otp/src/cotp/qr_code.hpp"
+#include "src/otp/cotp/cotp.hpp"
+#include "src/otp/cotp/qr_code.hpp"
 
 // 비밀번호 / 복구코드 해싱을 위한 헤더 파일
 #include "src/hash.hpp"

@@ -9,33 +9,33 @@ OTP_OBJ = $(OTP_SRC:.cpp=.o) $(OTP_DEPS_SRC:.cpp=.o)
 all: server metadata/control
 
 clean:
-	rm -f *.o server metadata/control $(OTP_OBJ)
+	rm -f *.o src/*.o server metadata/control $(OTP_OBJ)
 
 # TCP, RTSP 서버
 
 server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o hash.o $(OTP_OBJ)
-	$(CXX) server.o rtsp_server.o tcp_server.o src/db_management.o metadata_parser.o src/hash.o $(OTP_OBJ) -o server $(LDFLAGS)
+	$(CXX) server.o src/rtsp_server.o src/tcp_server.o src/db_management.o src/metadata_parser.o src/hash.o $(OTP_OBJ) -o server $(LDFLAGS)
 
 
-server.o: server.cpp server_bbox.hpp
+server.o: server.cpp src/server_bbox.hpp
 	$(CXX) -c server.cpp $(CXXFLAGS)
 
-rtsp_server.o: rtsp_server.cpp
-	$(CXX) -c rtsp_server.cpp $(CXXFLAGS)
+rtsp_server.o: src/rtsp_server.cpp
+	$(CXX) -c src/rtsp_server.cpp -o src/rtsp_server.o $(CXXFLAGS)
 
-tcp_server.o: tcp_server.cpp server_bbox.hpp
-	$(CXX) -c tcp_server.cpp $(CXXFLAGS)
+tcp_server.o: src/tcp_server.cpp src/server_bbox.hpp
+	$(CXX) -c src/tcp_server.cpp -o src/tcp_server.o $(CXXFLAGS)
 
 db_management.o : src/db_management.cpp
 	$(CXX) -c src/db_management.cpp -o src/db_management.o -std=c++17
 
-metadata_parser.o: metadata_parser.cpp server_bbox.hpp
-	$(CXX) -c $< -std=c++17
+metadata_parser.o: src/metadata_parser.cpp src/server_bbox.hpp
+	$(CXX) -c $< -o src/metadata_parser.o -std=c++17
 
 hash.o: src/hash.cpp src/hash.hpp
 	$(CXX) -c src/hash.cpp -o src/hash.o $(CXXFLAGS)
 
 # 메타데이터, 감지 처리 서버
 
-metadata/control: metadata/main_control.cpp metadata/board_control.cpp
-	$(CXX) metadata/main_control.cpp metadata/board_control.cpp -o metadata/control -lSQLiteCpp -lsqlite3 --std=c++17
+metadata/control: src/metadata/main_control.cpp src/metadata/board_control.cpp
+	$(CXX) src/metadata/main_control.cpp src/metadata/board_control.cpp -o control -lSQLiteCpp -lsqlite3 --std=c++17

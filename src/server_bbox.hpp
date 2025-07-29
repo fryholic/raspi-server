@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "src/json.hpp" // Assuming nlohmann/json is used for JSON parsing
+#include "json.hpp" // Assuming nlohmann/json is used for JSON parsing
 
 // Server-side BBox structure (Qt-independent)
 struct ServerBBox {

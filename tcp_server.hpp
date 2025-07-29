@@ -41,8 +41,7 @@ extern SSL_CTX* ssl_ctx;
 #include "db_management.hpp"
 
 
-// Argon2 해싱을 위한 라이브러리
-#include <sodium.h>
+
 
 #include "metadata_parser.hpp"
 #include <atomic>
@@ -50,6 +49,9 @@ extern SSL_CTX* ssl_ctx;
 // OTP 관련 헤더
 #include "otp/src/cotp/cotp.hpp"
 #include "otp/src/cotp/qr_code.hpp"
+
+// 비밀번호 / 복구코드 해싱을 위한 헤더 파일
+#include "src/hash.hpp"
 
 
 

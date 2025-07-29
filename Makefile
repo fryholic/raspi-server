@@ -13,8 +13,8 @@ clean:
 
 # TCP, RTSP 서버
 
-server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o $(OTP_OBJ)
-	$(CXX) server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o $(OTP_OBJ) -o server $(LDFLAGS)
+server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o hash.o $(OTP_OBJ)
+	$(CXX) server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o hash.o $(OTP_OBJ) -o server $(LDFLAGS)
 
 
 server.o: server.cpp server_bbox.hpp
@@ -31,6 +31,9 @@ db_management.o : db_management.cpp
 
 metadata_parser.o: metadata_parser.cpp server_bbox.hpp
 	$(CXX) -c $< -std=c++17
+
+hash.o: src/hash.cpp src/hash.hpp
+	$(CXX) -c src/hash.cpp -o hash.o $(CXXFLAGS)
 
 # 메타데이터, 감지 처리 서버
 

@@ -1150,7 +1150,8 @@ void handle_client(int client_socket, SQLite::Database& db,
                       // OTP secret 저장
                       store_otp_secret(db, id, otp_secret);
                       // 복구 코드 저장
-                      store_recovery_codes(db, id, recovery_codes);
+                      auto hashed_codes = hash_recovery_codes(recovery_codes);
+                      store_recovery_codes(db, id, hashed_codes);
                   }
               }
 
@@ -1374,43 +1375,15 @@ void printNowTimeKST() {
        << setw(3) << milliseconds << " KST]" << endl;
 }
 
-/**
- * @brief Argon2id를 사용하여 비밀번호를 해싱합니다.
- *
- * @param password 평문 비밀번호.
- * @return 해싱된 비밀번호 문자열.
- */
-string hash_password(const string& password) {
-    char hashed_password[crypto_pwhash_STRBYTES];
-
-    if (crypto_pwhash_str(hashed_password, password.c_str(), password.length(),
-                          crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                          crypto_pwhash_MEMLIMIT_INTERACTIVE) != 0) {
-        throw runtime_error("비밀번호 해싱 실패");
-    }
-
-    return string(hashed_password);
-}
-
-/**
- * @brief Argon2id를 사용하여 비밀번호를 검증합니다.
- *
- * @param hashed_password 해싱된 비밀번호.
- * @param password 평문 비밀번호.
- * @return 비밀번호가 일치하면 true, 그렇지 않으면 false.
- */
-bool verify_password(const string& hashed_password, const string& password) {
-    cout << "[Debug] Hashed password: " << hashed_password << endl;
-    cout << "[Debug] Plain password: " << password << endl;
-    int result = crypto_pwhash_str_verify(hashed_password.c_str(), password.c_str(),
-                                          password.length());
-    cout << "[Debug] Password verification result: " << (result == 0 ? "Match" : "Mismatch") << endl;
-    return result == 0;
-}
 
 
-
-// =======
+/* 
+ * ===================================================================
+ * 바운딩 박스 전송 함수
+ * 이 함수는 최신 바운딩 박스를 클라이언트에게 JSON 형식으로 전송합니다.
+ * SSL을 사용하여 안전하게 데이터를 전송합니다.
+ * ===================================================================
+*/
 
 // 바운딩 박스 전송 함수
 bool send_bboxes_to_client(SSL* ssl) {

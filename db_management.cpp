@@ -488,28 +488,59 @@ bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<s
     }
 }
 
-bool verify_recovery_code(SQLite::Database& db, const string& id, const string& code) {
+bool verify_recovery_code(SQLite::Database& db, const std::string& id, const std::string& input) {
+    // DB에서 해당 id의 해시된 복구 코드 목록을 가져옴
     try {
-        SQLite::Statement query(db, "SELECT COUNT(*) FROM recovery_codes WHERE id = ? AND code = ? AND used = 0");
-        query.bind(1, id);
-        query.bind(2, code);
-        query.executeStep();
-        return query.getColumn(0).getInt() > 0;
+        std::vector<std::string> hashed_codes = get_hashed_recovery_codes(db, id);
+        for (const auto& hashed : hashed_codes) {
+          if (verify_password(hashed, input)) {
+              return true;
+          }
+        }
     } catch (const std::exception& e) {
-        cerr << "[DB 에러] 복구 코드 검증 실패: " << e.what() << endl;
+        cerr << "[DB 에러] 복구 코드 검증 중 예외 발생: " << e.what() << endl;
         return false;
     }
 }
 
-bool invalidate_recovery_code(SQLite::Database& db, const string& id, const string& code) {
+bool invalidate_recovery_code(SQLite::Database& db, const string& id, const string& input_code) {
     try {
+        // 1. 사용자의 모든 미사용 복구 코드(해시) 가져오기
+        std::vector<std::string> hashed_codes = get_hashed_recovery_codes(db, id);
+        std::string matched_hash;
+        for (const auto& hash : hashed_codes) {
+            if (verify_password(hash, input_code)) {
+                matched_hash = hash;
+                break;
+            }
+        }
+        if (matched_hash.empty()) {
+            // 일치하는 코드 없음
+            return false;
+        }
+        // 2. 일치하는 해시값을 가진 코드만 used=1로 업데이트
         SQLite::Statement query(db, "UPDATE recovery_codes SET used = 1 WHERE id = ? AND code = ?");
         query.bind(1, id);
-        query.bind(2, code);
-        query.exec();
-        return true;
+        query.bind(2, matched_hash);
+        int changes = query.exec();
+        return changes > 0;
     } catch (const std::exception& e) {
         cerr << "[DB 에러] 복구 코드 무효화 실패: " << e.what() << endl;
         return false;
     }
 }
+
+std::vector<std::string> get_hashed_recovery_codes(SQLite::Database& db, const std::string& id) {
+    std::vector<std::string> codes;
+    try {
+        SQLite::Statement query(db, "SELECT code FROM recovery_codes WHERE id = ? AND used = 0");
+        query.bind(1, id);
+        while (query.executeStep()) {
+            codes.push_back(query.getColumn(0).getString());
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[DB] get_hashed_recovery_codes 예외: " << e.what() << std::endl;
+    }
+    return codes;
+}
+

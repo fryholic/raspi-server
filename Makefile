@@ -17,19 +17,19 @@ server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o ha
 	$(CXX) server.o src/rtsp_server.o src/tcp_server.o src/db_management.o src/metadata_parser.o src/hash.o src/config_manager.o $(OTP_OBJ) -o server $(LDFLAGS)
 
 
-server.o: server.cpp src/server_bbox.hpp
+server.o: server.cpp src/metadata_parser.hpp
 	$(CXX) -c server.cpp $(CXXFLAGS)
 
 rtsp_server.o: src/rtsp_server.cpp
 	$(CXX) -c src/rtsp_server.cpp -o src/rtsp_server.o $(CXXFLAGS)
 
-tcp_server.o: src/tcp_server.cpp src/server_bbox.hpp
+tcp_server.o: src/tcp_server.cpp src/metadata_parser.hpp
 	$(CXX) -c src/tcp_server.cpp -o src/tcp_server.o $(CXXFLAGS)
 
 db_management.o : src/db_management.cpp
 	$(CXX) -c src/db_management.cpp -o src/db_management.o -std=c++17
 
-metadata_parser.o: src/metadata_parser.cpp src/server_bbox.hpp
+metadata_parser.o: src/metadata_parser.cpp src/metadata_parser.hpp
 	$(CXX) -c $< -o src/metadata_parser.o -std=c++17
 
 hash.o: src/hash.cpp src/hash.hpp

@@ -50,6 +50,12 @@ bool verify_password(const string& hashed_password, const string& password) {
     return result == 0;
 }
 
+/**
+ * @brief 복구 코드를 해싱합니다.
+ *
+ * @param codes 복구 코드 문자열 벡터.
+ * @return 해싱된 복구 코드 문자열 벡터.
+ */
 std::vector<std::string> hash_recovery_codes(const std::vector<std::string>& codes) {
     std::vector<std::string> hashed_codes;
     for (const auto& code : codes) {

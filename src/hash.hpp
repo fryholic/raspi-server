@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <random>
 
 // Argon2 해싱을 위한 라이브러리
 #include <sodium.h>
@@ -33,3 +34,10 @@ bool verify_password(const string& hashed_password, const string& password);
  * @return 해싱된 복구 코드 문자열 벡터.
  */
 std::vector<std::string> hash_recovery_codes(const std::vector<std::string>& codes);
+
+/**
+ * @brief 복구 코드를 생성합니다.
+ *
+ * @return 10자리의 랜덤한 알파벳 대소문자와 숫자로 이루어진 복구 코드 문자열 벡터.
+ */
+std::vector<std::string> generate_recovery_codes();

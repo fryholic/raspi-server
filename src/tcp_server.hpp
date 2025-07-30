@@ -32,20 +32,20 @@
 #include "json.hpp"
 
 // OpenSSL 관련 헤더
-#include <openssl/err.h>
-#include <openssl/ssl.h>
-
-extern SSL_CTX* ssl_ctx;
+#include "ssl.hpp"
 
 // DB 관련 헤더
 #include "db_management.hpp"
 
-
-
-
 #include "metadata_parser.hpp"
 #include <atomic>
 #include <queue>
+
+// OTP 관련 헤더
+#include "otp/otp_manager.hpp"
+
+// 비밀번호 / 복구코드 해싱을 위한 헤더 파일
+#include "hash.hpp"
 
 // BBox 버퍼링을 위한 구조체
 struct TimestampedBBox {
@@ -58,13 +58,6 @@ extern std::atomic<int> bbox_buffer_delay_ms;  // 버퍼 지연 시간 (M ms)
 extern std::atomic<int> bbox_send_interval_ms; // 전송 주기 (N ms)
 extern std::queue<TimestampedBBox> bbox_buffer;
 extern std::mutex bbox_buffer_mutex;
-
-// OTP 관련 헤더
-#include "otp/cotp/cotp.hpp"
-#include "otp/cotp/qr_code.hpp"
-
-// 비밀번호 / 복구코드 해싱을 위한 헤더 파일
-#include "hash.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -86,13 +79,6 @@ bool recvAll(SSL*, char* buffer, size_t len);
 ssize_t sendAll(SSL*, const char* buffer, size_t len, int flags);
 
 void printNowTimeKST();
-
-// SSL 초기화 및 정리 함수
-
-bool init_openssl();
-void cleanup_openssl();
-SSL_CTX* create_ssl_context();
-void configure_ssl_context(SSL_CTX* ctx);
 
 bool send_bboxes_to_client(SSL* ssl);
 

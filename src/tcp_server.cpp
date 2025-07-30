@@ -8,110 +8,71 @@
 #include "metadata_parser.hpp"
 #include <thread>
 
-
-/*
-
-OpenSSL 관련
-
-*/
-
-std::mutex ssl_write_mutex;
-
-SSL_CTX* ssl_ctx = nullptr;
-
 // BBox 버퍼링 관련 전역 변수
 std::atomic<int> bbox_buffer_delay_ms(2400);   // 기본값 1초
 std::atomic<int> bbox_send_interval_ms(50);   // 기본값 200ms
 std::queue<TimestampedBBox> bbox_buffer;
 std::mutex bbox_buffer_mutex;
 
+
+
+// /*
+
+// OpenSSL 관련
+
+// */
+
+// std::mutex ssl_write_mutex;
+
+// SSL_CTX* ssl_ctx = nullptr;
+
+
+
+
+
+// // SSL 초기화 함수
+// bool init_openssl() {
+//   SSL_load_error_strings();
+//   OpenSSL_add_ssl_algorithms();
+//   return true;
+// }
+
+// // SSL 정리 함수
+// void cleanup_openssl() { EVP_cleanup(); }
+
+// // SSL 컨텍스트 생성
+// SSL_CTX* create_ssl_context() {
+//   const SSL_METHOD* method = TLS_server_method();
+//   SSL_CTX* ctx = SSL_CTX_new(method);
+//   if (!ctx) {
+//     perror("SSL 컨텍스트 생성 실패");
+//     return nullptr;
+//   }
+//   return ctx;
+// }
+
+// // SSL 컨텍스트 설정
+// void configure_ssl_context(SSL_CTX* ctx) {
+//   if (SSL_CTX_use_certificate_file(ctx, "fullchain.crt", SSL_FILETYPE_PEM) <=
+//       0) {
+//     ERR_print_errors_fp(stderr);
+//     exit(EXIT_FAILURE);
+//   }
+
+//   if (SSL_CTX_use_PrivateKey_file(ctx, "server.key", SSL_FILETYPE_PEM) <= 0) {
+//     ERR_print_errors_fp(stderr);
+//     exit(EXIT_FAILURE);
+//   }
+// }
+
+// /*
+
+// OpenSSL 관련 끝
+
+// */
+
 // OTP 관련 전역 변수
-std::unordered_map<std::string, std::unique_ptr<cotp::TOTP>> user_otps;
-
-// OTP 헬퍼 함수들
-std::pair<std::string, std::string> generate_otp_uri(const std::string& id) {
-    std::string secret = cotp::OTP::random_base32(16);
-    auto totp = std::make_unique<cotp::TOTP>(secret, "SHA1", 6, 30);
-
-    totp->set_account(id);
-    totp->set_issuer("CCTV Monitoring System");
-    std::string uri = totp->build_uri();
-
-    user_otps[id] = std::move(totp);
-    return {uri, secret};
-}
-
-bool verify_otp(const std::string& id, int otp) {
-    auto it = user_otps.find(id);
-    if (it != user_otps.end()) {
-        return it->second->verify(otp, time(nullptr), 0);
-    }
-    return false;
-}
-
-std::string generate_qr_code_svg(const std::string& otp_uri) {
-    cotp::QR_code qr;
-    qr.set_content(otp_uri);
-    return qr.get_svg();
-}
-
-std::vector<std::string> generate_recovery_codes() {
-    static const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    std::vector<std::string> codes;
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, sizeof(alphanum) - 2);
-
-    for (int i = 0; i < 5; ++i) {
-        std::string code;
-        for (int j = 0; j < 10; ++j) {
-            code += alphanum[dis(gen)];
-        }
-        codes.push_back(code);
-    }
-    return codes;
-}
-
-// SSL 초기화 함수
-bool init_openssl() {
-  SSL_load_error_strings();
-  OpenSSL_add_ssl_algorithms();
-  return true;
-}
-
-// SSL 정리 함수
-void cleanup_openssl() { EVP_cleanup(); }
-
-// SSL 컨텍스트 생성
-SSL_CTX* create_ssl_context() {
-  const SSL_METHOD* method = TLS_server_method();
-  SSL_CTX* ctx = SSL_CTX_new(method);
-  if (!ctx) {
-    perror("SSL 컨텍스트 생성 실패");
-    return nullptr;
-  }
-  return ctx;
-}
-
-// SSL 컨텍스트 설정
-void configure_ssl_context(SSL_CTX* ctx) {
-  if (SSL_CTX_use_certificate_file(ctx, "fullchain.crt", SSL_FILETYPE_PEM) <=
-      0) {
-    ERR_print_errors_fp(stderr);
-    exit(EXIT_FAILURE);
-  }
-
-  if (SSL_CTX_use_PrivateKey_file(ctx, "server.key", SSL_FILETYPE_PEM) <= 0) {
-    ERR_print_errors_fp(stderr);
-    exit(EXIT_FAILURE);
-  }
-}
-
-/*
-
-OpenSSL 관련 끝
-
-*/
+static OTPManager otp_manager;
 
 // --- 응답 데이터를 저장할 콜백 함수 ---
 // libcurl은 데이터를 작은 청크로 나눠서 이 함수를 여러 번 호출해요.
@@ -1006,10 +967,7 @@ void handle_client(int client_socket, SQLite::Database& db,
                 
                 // OTP 객체 생성 (DB에서 secret 로드)
                 if (!accountPtr->otp_secret.empty()) {
-                    auto totp = std::make_unique<cotp::TOTP>(accountPtr->otp_secret, "SHA1", 6, 30);
-                    totp->set_account(id);
-                    totp->set_issuer("CCTV Monitoring System");
-                    user_otps[id] = std::move(totp);
+                    otp_manager.register_otp(id, accountPtr->otp_secret);
                 }
             } else {
                 cout << "[로그인] 1단계 실패: 비밀번호 불일치 (ID: " << id << ")" << endl;
@@ -1058,7 +1016,7 @@ void handle_client(int client_socket, SQLite::Database& db,
               if (is_numeric && input.length() == 6) {
                   // OTP 검증
                   int otp = std::stoi(input);
-                  if (verify_otp(id, otp)) {
+                  if (otp_manager.verify_otp(id, otp)) {
                       cout << "[로그인] OTP 검증 성공 (ID: " << id << ")" << endl;
                       finalLoginSuccess = true;
                   } else {
@@ -1132,13 +1090,12 @@ void handle_client(int client_socket, SQLite::Database& db,
 
               if (use_otp) {
                   // OTP URI 생성
-                  auto otp_result = generate_otp_uri(id);
-                  otp_uri = otp_result.first;
-                  otp_secret = otp_result.second;
+                  otp_uri = otp_manager.generate_otp_uri(id);
+                  otp_secret = otp_manager.get_secret(id);
                   cout << "[회원가입] OTP URI 생성 완료 (ID: " << id << ")" << endl;
 
                   // QR 코드 SVG 생성
-                  qr_code_svg = generate_qr_code_svg(otp_uri);
+                  qr_code_svg = otp_manager.generate_qr_code_svg(otp_uri);
                   cout << "[회원가입] QR 코드 생성 완료 (ID: " << id << ")" << endl;
 
                   // 복구 코드 생성
@@ -1347,46 +1304,6 @@ int tcp_run() {
   close(server_fd);
   curl_global_cleanup();
   return 0;
-}
-
-// SSL 버전의 송수신 함수
-bool recvAll(SSL* ssl, char* buffer, size_t len) {
-  size_t total_received = 0;
-  while (total_received < len) {
-    int bytes_received =
-        SSL_read(ssl, buffer + total_received, len - total_received);
-
-    if (bytes_received <= 0) {
-      int error = SSL_get_error(ssl, bytes_received);
-      if (error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE) {
-        continue;
-      }
-      ERR_print_errors_fp(stderr);
-      return false;
-    }
-    total_received += bytes_received;
-  }
-  return true;
-}
-
-ssize_t sendAll(SSL* ssl, const char* buffer, size_t len, int flags) {
-  size_t total_sent = 0;
-  while (total_sent < len) {
-    int bytes_sent = SSL_write(ssl, buffer + total_sent, len - total_sent);
-
-    if (bytes_sent <= 0) {
-      int error = SSL_get_error(ssl, bytes_sent);
-      if (error == SSL_ERROR_WANT_WRITE || error == SSL_ERROR_WANT_READ) {
-        continue;
-      }
-      ERR_print_errors_fp(stderr);
-      return -1;
-    }
-
-    total_sent += bytes_sent;
-  }
-
-  return total_sent;
 }
 
 void printNowTimeKST() {

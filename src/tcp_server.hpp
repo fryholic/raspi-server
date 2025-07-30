@@ -37,6 +37,9 @@
 // DB 관련 헤더
 #include "db_management.hpp"
 
+// 카메라에 line을 설정하기 위한 헤더
+#include "curl_camera.hpp"
+
 #include "metadata_parser.hpp"
 #include <atomic>
 #include <queue>

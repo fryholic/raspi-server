@@ -3,13 +3,19 @@
 // 이 코드의 RTSP 서버 주소 : rtsp://<ip주소>:8554/retransmit
 
 #include "rtsp_server.hpp"
+#include "config_manager.hpp"
 
 #define CCTV_RTSP_PORT "8554"
 #define CCTV_MOUNT_POINT "/original"
-
 #define NIGHT_CCTV_MOUNT_POINT "/night"
 
 void rtsp_run(int argc, char *argv[]) {
+  // 설정 로드
+  if (!load_all_config()) {
+    cerr << "[ERROR] 설정 로드 실패" << endl;
+    return;
+  }
+  
   gchar *port = (gchar *)CCTV_RTSP_PORT;
   // GStreamer 초기화 (초기화 실패시 에러 발생시킴)
   GError *error = NULL;
@@ -33,21 +39,19 @@ void rtsp_run(int argc, char *argv[]) {
   // 요소
   GstRTSPMediaFactory *factory = gst_rtsp_media_factory_new();
   // RTSP 수신 & 송신 파이프라인 생성
-  const char *pipeline_description =
-      "rtspsrc "
-      "location=rtsp://admin:admin123%40@192.168.0.137:554/0/onvif/"
-      "profile2/media.smp ! "  // 엣지 디바이스 Pi 주소 수정 필요, latency
-                               // : 버퍼링 지연 시간 결정
+  string rtsp_url = get_rtsp_url();
+  string pipeline_description = 
+      "rtspsrc location=" + rtsp_url + " ! "  // 엣지 디바이스 Pi 주소 (.env에서 로드)
       "rtph264depay ! "              // RTP 패킷 -> H.264 비디오 데이터
                                      // 추출(depacketize)
       "h264parse ! "                 // H.264 비디오 데이터 파싱
       "rtph264pay name=pay0 pt=96";  // 비디오 데이터 -> RTP 패킷화
-  gst_rtsp_media_factory_set_launch(factory, pipeline_description);
+  gst_rtsp_media_factory_set_launch(factory, pipeline_description.c_str());
 
   // 야간 영상 전용 파이프라인
   GstRTSPMediaFactory *factory2 = gst_rtsp_media_factory_new();
-  const char *pipeline_description2 =
-  "rtspsrc location=rtsp://admin:admin123%40@192.168.0.137:554/0/onvif/profile2/media.smp ! "
+  string pipeline_description2 =
+  "rtspsrc location=" + rtsp_url + " ! "
   "rtph264depay ! "
   "h264parse ! "
   "avdec_h264 ! "
@@ -57,7 +61,7 @@ void rtsp_run(int argc, char *argv[]) {
   "x264enc tune=zerolatency ! "
   "h264parse ! "
   "rtph264pay name=pay0 pt=96";
-  gst_rtsp_media_factory_set_launch(factory2, pipeline_description2);
+  gst_rtsp_media_factory_set_launch(factory2, pipeline_description2.c_str());
 
   // RTSP 마운트 포인트 재설정 및 팩토리 추가
   gst_rtsp_mount_points_add_factory(mounts, CCTV_MOUNT_POINT, factory);

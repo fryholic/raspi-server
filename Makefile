@@ -13,8 +13,8 @@ clean:
 
 # TCP, RTSP 서버
 
-server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o hash.o $(OTP_OBJ)
-	$(CXX) server.o src/rtsp_server.o src/tcp_server.o src/db_management.o src/metadata_parser.o src/hash.o $(OTP_OBJ) -o server $(LDFLAGS)
+server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o hash.o config_manager.o $(OTP_OBJ)
+	$(CXX) server.o src/rtsp_server.o src/tcp_server.o src/db_management.o src/metadata_parser.o src/hash.o src/config_manager.o $(OTP_OBJ) -o server $(LDFLAGS)
 
 
 server.o: server.cpp src/server_bbox.hpp
@@ -35,7 +35,10 @@ metadata_parser.o: src/metadata_parser.cpp src/server_bbox.hpp
 hash.o: src/hash.cpp src/hash.hpp
 	$(CXX) -c src/hash.cpp -o src/hash.o $(CXXFLAGS)
 
+config_manager.o: src/config_manager.cpp src/config_manager.hpp
+	$(CXX) -c src/config_manager.cpp -o src/config_manager.o -std=c++17
+
 # 메타데이터, 감지 처리 서버
 
-metadata/control: src/metadata/main_control.cpp src/metadata/board_control.cpp
-	$(CXX) src/metadata/main_control.cpp src/metadata/board_control.cpp -o control -lSQLiteCpp -lsqlite3 --std=c++17
+metadata/control: src/metadata/main_control.cpp src/metadata/board_control.cpp src/config_manager.o
+	$(CXX) src/metadata/main_control.cpp src/metadata/board_control.cpp src/config_manager.o -o control -lSQLiteCpp -lsqlite3 --std=c++17

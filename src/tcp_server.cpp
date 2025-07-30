@@ -5,7 +5,7 @@
 #include <memory>
 #include <random>
 
-#include "server_bbox.hpp"
+
 #include "metadata_parser.hpp"
 #include <thread>
 

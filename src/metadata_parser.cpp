@@ -2,7 +2,6 @@
 #include <iostream>
 #include <regex>
 #include <cstdio>
-#include "server_bbox.hpp" // Include the new server-side BBox definition
 #include "config_manager.hpp"
 
 // tcp_server.hpp에서 선언된 update_bbox_buffer 함수 사용

@@ -16,15 +16,35 @@ using std::cerr;
 using std::endl;
 using std::to_string;
 
-// --- CURL 응답 콜백 함수 ---
+
+/**
+ * @brief libcurl의 응답 데이터를 저장하는 콜백 함수
+ *
+ * @param contents 수신 데이터 포인터
+ * @param size 데이터 단위 크기
+ * @param nmemb 데이터 단위 개수
+ * @param userp 사용자 정의 포인터 (std::string*)
+ * @return 처리한 데이터의 총 바이트 수
+ */
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
 
-// --- 라인 크로싱 API 함수들 ---
-// 라인 크로싱 설정 조회 (GET)
+
+/**
+ * @brief 라인 크로싱 설정 정보를 GET 요청으로 받아옵니다.
+ * @return HTTP 응답 본문 (JSON 문자열)
+ */
 string getLines();
 
-// 라인 크로싱 설정 업데이트 (PUT)
+/**
+ * @brief 라인 크로싱 설정 정보를 PUT 요청으로 서버에 전송합니다.
+ * @param crossLine 전송할 라인 정보 구조체
+ * @return HTTP 응답 본문 (JSON 문자열)
+ */
 string putLines(CrossLine crossLine);
 
-// 라인 크로싱 삭제 (DELETE)
+/**
+ * @brief 지정한 인덱스의 라인 크로싱 설정을 DELETE 요청으로 삭제합니다.
+ * @param index 삭제할 라인 인덱스
+ * @return HTTP 응답 본문 (JSON 문자열)
+ */
 string deleteLines(int index);

@@ -14,25 +14,62 @@
 
 using namespace std;
 
-// Use ServerBBox for latest_bboxes
+
+/**
+ * @brief 최근에 파싱된 BBox 목록 (스레드 안전)
+ */
 vector<ServerBBox> latest_bboxes;
+
+/**
+ * @brief latest_bboxes 보호용 뮤텍스
+ */
 mutex bbox_mutex;
+
+/**
+ * @brief 메타데이터 파서 실행 여부 플래그
+ */
 atomic<bool> parser_running(false);
 
-// BBox 버퍼링 관련 전역 변수
-std::atomic<int> bbox_buffer_delay_ms(2400);   // 기본값 2.4초
-std::atomic<int> bbox_send_interval_ms(50);   // 기본값 50ms
+/**
+ * @brief BBox 버퍼 지연(ms), 기본값 2400ms
+ */
+std::atomic<int> bbox_buffer_delay_ms(2400);
+
+/**
+ * @brief BBox 전송 간격(ms), 기본값 50ms
+ */
+std::atomic<int> bbox_send_interval_ms(50);
+
+/**
+ * @brief BBox 버퍼 (타임스탬프 포함)
+ */
 std::queue<TimestampedBBox> bbox_buffer;
+
+/**
+ * @brief bbox_buffer 보호용 뮤텍스
+ */
 std::mutex bbox_buffer_mutex;
 
+
+/**
+ * @brief 메타데이터 파서를 시작합니다.
+ */
 void start_metadata_parser() {
     parser_running = true;
 }
 
+
+/**
+ * @brief 메타데이터 파서를 중지합니다.
+ */
 void stop_metadata_parser() {
     parser_running = false;
 }
 
+/**
+ * @brief RTSP 스트림에서 메타데이터를 파싱하여 BBox 정보를 추출합니다.
+ *        파싱된 BBox는 latest_bboxes와 버퍼에 저장됩니다.
+ */
 void parse_metadata() {
     if (!parser_running) {
         return;
@@ -141,6 +178,9 @@ void parse_metadata() {
 
 // ==================== BBox 버퍼 관리 함수들 ====================
 
+/**
+ * @brief BBox 버퍼를 완전히 비웁니다.
+ */
 void clear_bbox_buffer() {
     std::lock_guard<std::mutex> lock(bbox_buffer_mutex);
     
@@ -151,6 +191,10 @@ void clear_bbox_buffer() {
     std::cout << "[BUFFER] Buffer cleared completely" << std::endl;
 }
 
+/**
+ * @brief 새로운 BBox 데이터를 타임스탬프와 함께 버퍼에 추가하고 오래된 데이터를 정리합니다.
+ * @param new_bboxes 새로 파싱된 BBox 벡터
+ */
 void update_bbox_buffer(const std::vector<ServerBBox>& new_bboxes) {
     std::lock_guard<std::mutex> lock(bbox_buffer_mutex);
     
@@ -192,6 +236,11 @@ void update_bbox_buffer(const std::vector<ServerBBox>& new_bboxes) {
     }
 }
 
+/**
+ * @brief 버퍼에서 BBox 데이터를 꺼내 클라이언트(SSL)로 전송합니다.
+ * @param ssl OpenSSL SSL 포인터
+ * @return 전송 성공 시 true, 실패 시 false
+ */
 bool send_bboxes_to_client(SSL* ssl) {
     std::vector<ServerBBox> bboxes_to_send;
     int buffer_size = 0;

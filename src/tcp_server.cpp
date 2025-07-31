@@ -16,6 +16,11 @@
 
 // ==================== 유틸리티 함수들 ====================
 
+/**
+ * @brief 클라이언트 소켓에 대해 SSL 연결을 설정합니다.
+ * @param client_socket 클라이언트 소켓 디스크립터
+ * @return SSL 포인터, 실패 시 nullptr
+ */
 SSL* setup_ssl_connection(int client_socket) {
     SSL* ssl = SSL_new(ssl_ctx);
     if (!ssl) {
@@ -38,6 +43,10 @@ SSL* setup_ssl_connection(int client_socket) {
     return ssl;
 }
 
+/**
+ * @brief 데이터베이스의 모든 테이블을 초기화(생성)합니다.
+ * @param db SQLite 데이터베이스 참조
+ */
 void initialize_database_tables(SQLite::Database& db) {
     create_table_detections(db);
     create_table_lines(db);
@@ -47,6 +56,12 @@ void initialize_database_tables(SQLite::Database& db) {
     create_table_recovery_codes(db);
 }
 
+/**
+ * @brief SSL을 통해 JSON 메시지를 수신합니다.
+ * @param ssl OpenSSL SSL 포인터
+ * @param received_json 파싱된 JSON 객체 (출력)
+ * @return 성공 시 true, 실패 시 false
+ */
 bool receive_json_message(SSL* ssl, json& received_json) {
     uint32_t net_len;
     if (!recvAll(ssl, reinterpret_cast<char*>(&net_len), sizeof(net_len))) {
@@ -71,6 +86,16 @@ bool receive_json_message(SSL* ssl, json& received_json) {
 
 // ==================== 요청 라우터 ====================
 
+/**
+ * @brief request_id에 따라 적절한 요청 처리 함수를 호출합니다.
+ * @param ssl OpenSSL SSL 포인터
+ * @param received_json 수신된 JSON 요청
+ * @param db SQLite 데이터베이스 참조
+ * @param db_mutex DB 접근 뮤텍스
+ * @param bbox_push_enabled BBox push 활성화 플래그
+ * @param push_thread BBox push 스레드 참조
+ * @param metadata_thread 메타데이터 파싱 스레드 참조
+ */
 void route_request(SSL* ssl, const json& received_json, SQLite::Database& db, std::mutex& db_mutex, 
                    std::atomic<bool>& bbox_push_enabled, std::thread& push_thread, std::thread& metadata_thread) {
     int request_id = received_json.value("request_id", -1);
@@ -118,6 +143,14 @@ void route_request(SSL* ssl, const json& received_json, SQLite::Database& db, st
     }
 }
 
+/**
+ * @brief 클라이언트 연결 종료 시 스레드 및 리소스를 정리합니다.
+ * @param ssl OpenSSL SSL 포인터
+ * @param client_socket 클라이언트 소켓 디스크립터
+ * @param bbox_push_enabled BBox push 활성화 플래그
+ * @param push_thread BBox push 스레드 참조
+ * @param metadata_thread 메타데이터 파싱 스레드 참조
+ */
 void cleanup_client_connection(SSL* ssl, int client_socket, std::atomic<bool>& bbox_push_enabled, 
                                std::thread& push_thread, std::thread& metadata_thread) {
     // 연결 종료 직전 정리
@@ -135,6 +168,12 @@ void cleanup_client_connection(SSL* ssl, int client_socket, std::atomic<bool>& b
 
 // ==================== 메인 클라이언트 처리 함수 ====================
 
+/**
+ * @brief 클라이언트 연결을 처리하는 메인 함수 (스레드 진입점)
+ * @param client_socket 클라이언트 소켓 디스크립터
+ * @param db SQLite 데이터베이스 참조
+ * @param db_mutex DB 접근 뮤텍스
+ */
 void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex) {
     // SSL 연결 설정
     SSL* ssl = setup_ssl_connection(client_socket);
@@ -172,6 +211,10 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
     cleanup_client_connection(ssl, client_socket, bbox_push_enabled, push_thread, metadata_thread);
 }
 
+/**
+ * @brief TCP 서버 메인 함수. 서버를 초기화하고 클라이언트 연결을 처리합니다.
+ * @return 정상 종료 시 0, 실패 시 음수
+ */
 int tcp_run() {
     
     // 설정 로드

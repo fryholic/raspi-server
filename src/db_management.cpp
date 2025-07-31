@@ -4,6 +4,10 @@
 ///////////////////////////////////////////////
 // Detections 테이블
 
+/**
+ * @brief Detections 테이블을 생성합니다.
+ * @param db SQLite 데이터베이스 참조
+ */
 void create_table_detections(SQLite::Database& db) {
   db.exec(
       "CREATE TABLE IF NOT EXISTS detections ("
@@ -14,6 +18,12 @@ void create_table_detections(SQLite::Database& db) {
   return;
 }
 
+/**
+ * @brief Detections 테이블에 데이터를 삽입합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param detection 삽입할 Detection 구조체
+ * @return 성공 시 true, 실패 시 false
+ */
 bool insert_data_detections(SQLite::Database& db, Detection detection) {
   try {
     // SQL 인젝션 방지를 위해 Prepared Statement 사용
@@ -34,6 +44,13 @@ bool insert_data_detections(SQLite::Database& db, Detection detection) {
   return true;
 }
 
+/**
+ * @brief 주어진 시간 범위 내의 Detection 데이터를 조회합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param startTimestamp 시작 타임스탬프
+ * @param endTimestamp 종료 타임스탬프
+ * @return Detection 벡터
+ */
 vector<Detection> select_data_for_timestamp_range_detections(
     SQLite::Database& db, string startTimestamp, string endTimestamp) {
   vector<Detection> detections;
@@ -62,6 +79,10 @@ vector<Detection> select_data_for_timestamp_range_detections(
   return detections;
 }
 
+/**
+ * @brief Detections 테이블의 모든 데이터를 삭제합니다.
+ * @param db SQLite 데이터베이스 참조
+ */
 void delete_all_data_detections(SQLite::Database& db) {
   try {
     SQLite::Statement query(db, "DELETE FROM detections");
@@ -78,6 +99,10 @@ void delete_all_data_detections(SQLite::Database& db) {
 ///////////////////////////////////////////////
 // Lines 테이블
 
+/**
+ * @brief Lines 테이블을 생성합니다.
+ * @param db SQLite 데이터베이스 참조
+ */
 void create_table_lines(SQLite::Database& db) {
   db.exec(
       "CREATE TABLE IF NOT EXISTS lines (" 
@@ -92,6 +117,12 @@ void create_table_lines(SQLite::Database& db) {
   return;
 }
 
+/**
+ * @brief Lines 테이블에 데이터를 삽입합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param crossLine 삽입할 CrossLine 구조체
+ * @return 성공 시 true, 실패 시 false
+ */
 bool insert_data_lines(SQLite::Database& db, CrossLine crossLine) {
   try {
     // SQL 인젝션 방지를 위해 Prepared Statement 사용
@@ -118,6 +149,11 @@ bool insert_data_lines(SQLite::Database& db, CrossLine crossLine) {
   return true;
 }
 
+/**
+ * @brief Lines 테이블의 모든 데이터를 조회합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @return CrossLine 벡터
+ */
 vector<CrossLine> select_all_data_lines(SQLite::Database& db) {
   vector<CrossLine> lines;
   try {
@@ -142,6 +178,12 @@ vector<CrossLine> select_all_data_lines(SQLite::Database& db) {
   return lines;
 }
 
+/**
+ * @brief Lines 테이블에서 특정 인덱스의 데이터를 삭제합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param indexNum 삭제할 인덱스 번호
+ * @return 성공 시 true, 실패 시 false
+ */
 bool delete_data_lines(SQLite::Database& db, int indexNum) {
   try {
     SQLite::Statement query(db, "DELETE FROM lines WHERE indexNum = ?");
@@ -161,6 +203,11 @@ bool delete_data_lines(SQLite::Database& db, int indexNum) {
   return true;
 }
 
+/**
+ * @brief Lines 테이블의 모든 데이터를 삭제합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @return 성공 시 true, 실패 시 false
+ */
 bool delete_all_data_lines(SQLite::Database& db) {
   try {
     SQLite::Statement query(db, "DELETE FROM lines");
@@ -181,6 +228,10 @@ bool delete_all_data_lines(SQLite::Database& db) {
 ///////////////////////////////////////////////
 // BaseLine 테이블
 
+/**
+ * @brief baseLines 테이블을 생성합니다.
+ * @param db SQLite 데이터베이스 참조
+ */
 void create_table_baseLines(SQLite::Database& db) {
   db.exec(
       "CREATE TABLE IF NOT EXISTS baseLines (" 
@@ -195,6 +246,11 @@ void create_table_baseLines(SQLite::Database& db) {
   return;
 }
 
+/**
+ * @brief baseLines 테이블의 모든 데이터를 조회합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @return BaseLine 벡터
+ */
 vector<BaseLine> select_all_data_baseLines(SQLite::Database& db) {
   vector<BaseLine> baseLines;
   try {
@@ -219,6 +275,12 @@ vector<BaseLine> select_all_data_baseLines(SQLite::Database& db) {
   return baseLines;
 }
 
+/**
+ * @brief baseLines 테이블에 데이터를 삽입합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param baseLine 삽입할 BaseLine 구조체
+ * @return 성공 시 true, 실패 시 false
+ */
 bool insert_data_baseLines(SQLite::Database& db, BaseLine baseLine) {
   try {
     // SQL 인젝션 방지를 위해 Prepared Statement 사용
@@ -246,6 +308,12 @@ bool insert_data_baseLines(SQLite::Database& db, BaseLine baseLine) {
   return true;
 }
 
+/**
+ * @brief baseLines 테이블의 데이터를 수정합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param baseLine 수정할 BaseLine 구조체
+ * @return 성공 시 true, 실패 시 false
+ */
 bool update_data_baseLines(SQLite::Database& db, BaseLine baseLine){
   try {
     // SQL 인젝션 방지를 위해 Prepared Statement 사용
@@ -270,6 +338,11 @@ bool update_data_baseLines(SQLite::Database& db, BaseLine baseLine){
   return true;
 }
 
+/**
+ * @brief baseLines 테이블의 모든 데이터를 삭제합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @return 성공 시 true, 실패 시 false
+ */
 bool delete_all_data_baseLines(SQLite::Database& db) {
   try {
     SQLite::Statement query(db, "DELETE FROM baselines");
@@ -290,6 +363,10 @@ bool delete_all_data_baseLines(SQLite::Database& db) {
 ///////////////////////////////////////////////
 // VerticalLineEquation 테이블
 
+/**
+ * @brief verticalLineEquations 테이블을 생성합니다.
+ * @param db SQLite 데이터베이스 참조
+ */
 void create_table_verticalLineEquations(SQLite::Database& db) {
   db.exec(
       "CREATE TABLE IF NOT EXISTS verticalLineEquations (" 
@@ -300,6 +377,12 @@ void create_table_verticalLineEquations(SQLite::Database& db) {
   return;
 }
 
+/**
+ * @brief verticalLineEquations 테이블에서 특정 인덱스의 데이터를 조회합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param index 조회할 인덱스
+ * @return VerticalLineEquation 구조체
+ */
 VerticalLineEquation select_data_verticalLineEquations(SQLite::Database& db,
                                                        int index) {
   VerticalLineEquation verticalLineEquation;
@@ -323,6 +406,12 @@ VerticalLineEquation select_data_verticalLineEquations(SQLite::Database& db,
   return verticalLineEquation;
 }
 
+/**
+ * @brief verticalLineEquations 테이블에 데이터를 삽입합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param verticalLineEquation 삽입할 VerticalLineEquation 구조체
+ * @return 성공 시 true, 실패 시 false
+ */
 bool insert_data_verticalLineEquations(
     SQLite::Database& db, VerticalLineEquation verticalLineEquation) {
   try {
@@ -347,6 +436,11 @@ bool insert_data_verticalLineEquations(
   return true;
 }
 
+/**
+ * @brief verticalLineEquations 테이블의 모든 데이터를 삭제합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @return 성공 시 true, 실패 시 false
+ */
 bool delete_all_data_verticalLineEquations(SQLite::Database& db) {
   try {
     SQLite::Statement query(db, "DELETE FROM verticalLineEquations");
@@ -364,6 +458,10 @@ bool delete_all_data_verticalLineEquations(SQLite::Database& db) {
   return true;
 }
 
+/**
+ * @brief accounts 테이블을 생성합니다.
+ * @param db SQLite 데이터베이스 참조
+ */
 void create_table_accounts(SQLite::Database& db) {
   db.exec(
       "CREATE TABLE IF NOT EXISTS accounts (" 
@@ -376,6 +474,13 @@ void create_table_accounts(SQLite::Database& db) {
   return;
 }
 
+/**
+ * @brief accounts 테이블에서 id와 passwd로 계정 정보를 조회합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param id 사용자 ID
+ * @param passwd 사용자 비밀번호
+ * @return Account 포인터 (없으면 nullptr)
+ */
 Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
   cout << "[Debug] select_data_accounts called with ID: " << id << ", Password: " << passwd << endl;
 
@@ -404,6 +509,12 @@ Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
   return account;
 }
 
+/**
+ * @brief accounts 테이블에 계정 정보를 삽입합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param account 삽입할 Account 구조체
+ * @return 성공 시 true, 실패 시 false
+ */
 bool insert_data_accounts(SQLite::Database& db, Account account) {
   try {
     SQLite::Statement query(
@@ -423,6 +534,12 @@ bool insert_data_accounts(SQLite::Database& db, Account account) {
   return true;
 }
 
+/**
+ * @brief accounts 테이블에서 id로 계정 정보를 조회합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param id 사용자 ID
+ * @return Account 포인터 (없으면 nullptr)
+ */
 Account* get_account_by_id(SQLite::Database& db, const string& id) {
     try {
         // use_otp도 함께 조회
@@ -447,6 +564,10 @@ Account* get_account_by_id(SQLite::Database& db, const string& id) {
     }
 }
 
+/**
+ * @brief recovery_codes 테이블을 생성합니다.
+ * @param db SQLite 데이터베이스 참조
+ */
 void create_table_recovery_codes(SQLite::Database& db) {
     db.exec(
         "CREATE TABLE IF NOT EXISTS recovery_codes (" 
@@ -457,6 +578,13 @@ void create_table_recovery_codes(SQLite::Database& db) {
     cout << "'recovery_codes' 테이블이 준비되었습니다.\n";
 }
 
+/**
+ * @brief accounts 테이블에 OTP 시크릿을 저장합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param id 사용자 ID
+ * @param secret 저장할 OTP 시크릿
+ * @return 성공 시 true, 실패 시 false
+ */
 bool store_otp_secret(SQLite::Database& db, const string& id, const string& secret) {
     try {
         SQLite::Statement query(db, "UPDATE accounts SET otp_secret = ? WHERE id = ?");
@@ -470,6 +598,13 @@ bool store_otp_secret(SQLite::Database& db, const string& id, const string& secr
     }
 }
 
+/**
+ * @brief recovery_codes 테이블에 복구 코드를 저장합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param id 사용자 ID
+ * @param codes 저장할 복구 코드 벡터
+ * @return 성공 시 true, 실패 시 false
+ */
 bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<string>& codes) {
     try {
         SQLite::Transaction transaction(db);
@@ -488,6 +623,13 @@ bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<s
     }
 }
 
+/**
+ * @brief 입력한 복구 코드가 DB에 저장된 해시와 일치하는지 검증합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param id 사용자 ID
+ * @param input 입력한 복구 코드
+ * @return 일치하면 true, 아니면 false
+ */
 bool verify_recovery_code(SQLite::Database& db, const std::string& id, const std::string& input) {
     // DB에서 해당 id의 해시된 복구 코드 목록을 가져옴
     try {
@@ -504,6 +646,13 @@ bool verify_recovery_code(SQLite::Database& db, const std::string& id, const std
     }
 }
 
+/**
+ * @brief 입력한 복구 코드가 일치하면 해당 코드를 used=1로 무효화합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param id 사용자 ID
+ * @param input_code 입력한 복구 코드
+ * @return 성공 시 true, 실패 시 false
+ */
 bool invalidate_recovery_code(SQLite::Database& db, const string& id, const string& input_code) {
     try {
         // 1. 사용자의 모든 미사용 복구 코드(해시) 가져오기
@@ -531,6 +680,12 @@ bool invalidate_recovery_code(SQLite::Database& db, const string& id, const stri
     }
 }
 
+/**
+ * @brief recovery_codes 테이블에서 사용되지 않은 해시 복구 코드 목록을 조회합니다.
+ * @param db SQLite 데이터베이스 참조
+ * @param id 사용자 ID
+ * @return 해시된 복구 코드 문자열 벡터
+ */
 std::vector<std::string> get_hashed_recovery_codes(SQLite::Database& db, const std::string& id) {
     std::vector<std::string> codes;
     try {

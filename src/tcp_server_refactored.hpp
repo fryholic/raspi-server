@@ -71,11 +71,7 @@ const int PORT = 8080;
 string getLines();
 string putLines(CrossLine);
 string deleteLines(int index);
-string base64_encode(const vector<unsigned char>& in);
 int tcp_run();
-bool recvAll(SSL*, char* buffer, size_t len);
-ssize_t sendAll(SSL*, const char* buffer, size_t len, int flags);
-void printNowTimeKST();
 bool send_bboxes_to_client(SSL* ssl);
 
 // BBox 버퍼 관리 함수
@@ -83,11 +79,9 @@ void update_bbox_buffer(const std::vector<ServerBBox>& new_bboxes);
 void clear_bbox_buffer();
 
 // ==================== 새로운 유틸리티 함수들 ====================
-void send_json_response(SSL* ssl, const json& response);
 SSL* setup_ssl_connection(int client_socket);
 void initialize_database_tables(SQLite::Database& db);
 bool receive_json_message(SSL* ssl, json& received_json);
-void secure_clear_password(string& passwd);
 
 // ==================== 요청 처리 함수들 ====================
 void handle_detection_request(SSL* ssl, const json& received_json, SQLite::Database& db, std::mutex& db_mutex);

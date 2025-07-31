@@ -4,6 +4,7 @@
 #include "hash.hpp"
 #include "otp/otp_manager.hpp"
 #include "metadata_parser.hpp"
+#include "utils.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -21,13 +22,6 @@ void send_json_response(SSL* ssl, const json& response) {
     
     sendAll(ssl, reinterpret_cast<const char*>(&net_res_len), sizeof(net_res_len), 0);
     sendAll(ssl, json_string.c_str(), res_len, 0);
-}
-
-void secure_clear_password(string& passwd) {
-    if (!passwd.empty()) {
-        memset(&passwd[0], 0, passwd.length());
-        passwd.clear();
-    }
 }
 
 // ==================== 요청 처리 함수들 ====================

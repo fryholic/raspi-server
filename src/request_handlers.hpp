@@ -29,4 +29,3 @@ void handle_bbox_stop_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, st
 
 // ==================== 공통 유틸리티 함수들 ====================
 void send_json_response(SSL* ssl, const json& response);
-void secure_clear_password(string& passwd);

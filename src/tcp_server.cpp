@@ -173,6 +173,7 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
 }
 
 int tcp_run() {
+    
     // 설정 로드
     if (!load_all_config()) {
     cerr << "[ERROR] 설정 로드 실패" << endl;
@@ -195,7 +196,7 @@ int tcp_run() {
     // SSL 컨텍스트 설정
     configure_ssl_context(ssl_ctx);
 
-    SQLite::Database db("server_log.db",
+    SQLite::Database db(g_config.db_file,
                         SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
     cout << "데이터베이스 파일 'server_log.db'에 연결되었습니다.\n";
 

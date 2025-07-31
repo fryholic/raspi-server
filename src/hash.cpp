@@ -50,10 +50,38 @@ bool verify_password(const string& hashed_password, const string& password) {
     return result == 0;
 }
 
+/**
+ * @brief 복구 코드를 해싱합니다.
+ *
+ * @param codes 복구 코드 문자열 벡터.
+ * @return 해싱된 복구 코드 문자열 벡터.
+ */
 std::vector<std::string> hash_recovery_codes(const std::vector<std::string>& codes) {
     std::vector<std::string> hashed_codes;
     for (const auto& code : codes) {
         hashed_codes.push_back(hash_password(code));
     }
     return hashed_codes;
+}
+
+/**
+ * @brief 복구 코드를 생성합니다.
+ *
+ * @return 10자리의 랜덤한 알파벳 대소문자와 숫자로 이루어진 복구 코드 문자열 벡터.
+ */
+std::vector<std::string> generate_recovery_codes() {
+    static const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    std::vector<std::string> codes;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, sizeof(alphanum) - 2);
+
+    for (int i = 0; i < 5; ++i) {
+        std::string code;
+        for (int j = 0; j < 10; ++j) {
+            code += alphanum[dis(gen)];
+        }
+        codes.push_back(code);
+    }
+    return codes;
 }

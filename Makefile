@@ -13,9 +13,9 @@ clean:
 
 # TCP, RTSP 서버
 
-server: server.o rtsp_server.o tcp_server.o db_management.o metadata_parser.o hash.o config_manager.o $(OTP_OBJ)
-	$(CXX) server.o src/rtsp_server.o src/tcp_server.o src/db_management.o src/metadata_parser.o src/hash.o src/config_manager.o $(OTP_OBJ) -o server $(LDFLAGS)
 
+server: server.o rtsp_server.o tcp_server.o request_handlers.o utils.o db_management.o metadata_parser.o hash.o ssl.o curl_camera.o config_manager.o $(OTP_OBJ)
+	$(CXX) server.o src/rtsp_server.o src/tcp_server.o src/request_handlers.o src/utils.o src/db_management.o src/metadata_parser.o src/hash.o src/ssl.o src/curl_camera.o src/config_manager.o $(OTP_OBJ) -o server $(LDFLAGS)
 
 server.o: server.cpp src/metadata_parser.hpp
 	$(CXX) -c server.cpp $(CXXFLAGS)
@@ -26,6 +26,12 @@ rtsp_server.o: src/rtsp_server.cpp
 tcp_server.o: src/tcp_server.cpp src/metadata_parser.hpp
 	$(CXX) -c src/tcp_server.cpp -o src/tcp_server.o $(CXXFLAGS)
 
+request_handlers.o: src/request_handlers.cpp src/request_handlers.hpp
+	$(CXX) -c src/request_handlers.cpp -o src/request_handlers.o $(CXXFLAGS)
+
+utils.o: src/utils.cpp src/utils.hpp
+	$(CXX) -c src/utils.cpp -o src/utils.o $(CXXFLAGS)
+
 db_management.o : src/db_management.cpp
 	$(CXX) -c src/db_management.cpp -o src/db_management.o -std=c++17
 
@@ -35,8 +41,16 @@ metadata_parser.o: src/metadata_parser.cpp src/metadata_parser.hpp
 hash.o: src/hash.cpp src/hash.hpp
 	$(CXX) -c src/hash.cpp -o src/hash.o $(CXXFLAGS)
 
+
+ssl.o: src/ssl.cpp src/ssl.hpp
+	$(CXX) -c src/ssl.cpp -o src/ssl.o $(CXXFLAGS)
+
+curl_camera.o: src/curl_camera.cpp src/curl_camera.hpp
+	$(CXX) -c src/curl_camera.cpp -o src/curl_camera.o $(CXXFLAGS)
+
 config_manager.o: src/config_manager.cpp src/config_manager.hpp
 	$(CXX) -c src/config_manager.cpp -o src/config_manager.o -std=c++17
+
 
 # 메타데이터, 감지 처리 서버
 

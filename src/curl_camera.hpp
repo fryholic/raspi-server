@@ -8,6 +8,7 @@
 #include <string>
 #include "json.hpp"
 #include "db_management.hpp"
+#include "config_manager.hpp"
 
 using json = nlohmann::json;
 using std::string;
@@ -15,6 +16,11 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::to_string;
+
+
+
+// --- 공통 설정 함수 ---
+struct curl_slist* setup_common_headers(CURL* curl_handle);
 
 
 /**
@@ -26,6 +32,7 @@ using std::to_string;
  * @param userp 사용자 정의 포인터 (std::string*)
  * @return 처리한 데이터의 총 바이트 수
  */
+
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
 
 

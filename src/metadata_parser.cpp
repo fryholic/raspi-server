@@ -30,10 +30,11 @@ mutex bbox_mutex;
  */
 atomic<bool> parser_running(false);
 
+
 /**
  * @brief BBox 버퍼 지연(ms), 기본값 2400ms
  */
-std::atomic<int> bbox_buffer_delay_ms(2400);
+std::atomic<int> bbox_buffer_delay_ms(2000);
 
 /**
  * @brief BBox 전송 간격(ms), 기본값 50ms

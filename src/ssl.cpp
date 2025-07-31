@@ -1,19 +1,38 @@
 #include "ssl.hpp"
 #include <iostream>
 
+
+/**
+ * @brief SSL 송신 시 동기화를 위한 뮤텍스
+ */
 std::mutex ssl_write_mutex;
+
+/**
+ * @brief 전역 SSL 컨텍스트 포인터
+ */
 SSL_CTX* ssl_ctx = nullptr;
 
+/**
+ * @brief OpenSSL 라이브러리 초기화
+ * @return 항상 true 반환
+ */
 bool init_openssl() {
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
     return true;
 }
 
+/**
+ * @brief OpenSSL 라이브러리 정리
+ */
 void cleanup_openssl() {
     EVP_cleanup();
 }
 
+/**
+ * @brief SSL 컨텍스트 생성 (TLS 서버용)
+ * @return 생성된 SSL_CTX 포인터, 실패 시 nullptr
+ */
 SSL_CTX* create_ssl_context() {
     const SSL_METHOD* method = TLS_server_method();
     SSL_CTX* ctx = SSL_CTX_new(method);
@@ -24,6 +43,10 @@ SSL_CTX* create_ssl_context() {
     return ctx;
 }
 
+/**
+ * @brief SSL 컨텍스트에 인증서와 개인키를 설정합니다.
+ * @param ctx SSL_CTX 포인터
+ */
 void configure_ssl_context(SSL_CTX* ctx) {
     if (SSL_CTX_use_certificate_file(ctx, "fullchain.crt", SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
@@ -36,6 +59,13 @@ void configure_ssl_context(SSL_CTX* ctx) {
 }
 
 // SSL 버전의 송수신 함수
+/**
+ * @brief SSL을 통해 지정한 길이만큼 데이터를 수신합니다.
+ * @param ssl OpenSSL SSL 포인터
+ * @param buffer 수신 버퍼
+ * @param len 수신할 바이트 수
+ * @return 성공 시 true, 실패 시 false
+ */
 bool recvAll(SSL* ssl, char* buffer, size_t len) {
   size_t total_received = 0;
   while (total_received < len) {
@@ -55,6 +85,14 @@ bool recvAll(SSL* ssl, char* buffer, size_t len) {
   return true;
 }
 
+/**
+ * @brief SSL을 통해 지정한 길이만큼 데이터를 송신합니다.
+ * @param ssl OpenSSL SSL 포인터
+ * @param buffer 송신할 데이터 버퍼
+ * @param len 송신할 바이트 수
+ * @param flags (미사용)
+ * @return 송신한 바이트 수, 실패 시 -1
+ */
 ssize_t sendAll(SSL* ssl, const char* buffer, size_t len, int flags) {
   size_t total_sent = 0;
   while (total_sent < len) {

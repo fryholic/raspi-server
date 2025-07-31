@@ -5,12 +5,22 @@
 #include <sstream>
 #include <cstdlib>
 
+/**
+ * @brief nlohmann::json 타입을 json으로 별칭 정의
+ */
 using json = nlohmann::json;
 
 // 전역 설정 인스턴스
+/**
+ * @brief 전역 설정 인스턴스
+ */
 AppConfig g_config;
 
 // .env 파일을 읽어서 환경 변수로 설정하는 함수
+/**
+ * @brief .env 파일을 읽어서 환경 변수로 설정하고, AppConfig에 값을 저장합니다.
+ * @return 성공 시 true, 실패 시 false
+ */
 bool load_env_variables() {
     ifstream file(".env");
     string line;
@@ -71,6 +81,10 @@ bool load_env_variables() {
 }
 
 // config.json 파일을 읽어서 설정값 로드
+/**
+ * @brief config.json 파일을 읽어서 AppConfig에 설정값을 로드합니다.
+ * @return 성공 시 true, 실패 시 false
+ */
 bool load_json_config() {
     ifstream config_file("config.json");
     if (!config_file.is_open()) {
@@ -117,6 +131,10 @@ bool load_json_config() {
 }
 
 // 모든 설정 로드
+/**
+ * @brief .env와 config.json 파일을 모두 로드합니다.
+ * @return 모든 설정이 성공적으로 로드되면 true, 아니면 false
+ */
 bool load_all_config() {
     bool env_ok = load_env_variables();
     bool json_ok = load_json_config();
@@ -130,6 +148,10 @@ bool load_all_config() {
 }
 
 // RTSP URL 생성
+/**
+ * @brief AppConfig 정보를 바탕으로 RTSP URL을 생성합니다.
+ * @return 생성된 RTSP URL 문자열
+ */
 string get_rtsp_url() {
     string password = g_config.password;
     

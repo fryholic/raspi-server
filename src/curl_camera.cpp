@@ -1,14 +1,28 @@
 #include "curl_camera.hpp"
 
-// --- 응답 데이터를 저장할 콜백 함수 ---
-// libcurl은 데이터를 작은 청크로 나눠서 이 함수를 여러 번 호출해요.
-// userp 인자는 CURLOPT_WRITEDATA로 설정한 포인터를 받아요.
+/**
+ * @brief libcurl의 응답 데이터를 저장하는 콜백 함수
+ *
+ * libcurl은 데이터를 작은 청크로 나눠서 이 함수를 여러 번 호출합니다.
+ * userp 인자는 CURLOPT_WRITEDATA로 설정한 포인터를 받습니다.
+ *
+ * @param contents 수신 데이터 포인터
+ * @param size 데이터 단위 크기
+ * @param nmemb 데이터 단위 개수
+ * @param userp 사용자 정의 포인터 (std::string*)
+ * @return 처리한 데이터의 총 바이트 수
+ */
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
   // userp는 std::string* 타입으로 캐스팅하여 응답 본문에 데이터를 추가해요.
   ((std::string*)userp)->append((char*)contents, size * nmemb);
   return size * nmemb;
 }
 
+/**
+ * @brief 라인 크로싱 설정 정보를 GET 요청으로 받아옵니다.
+ *
+ * @return HTTP 응답 본문 (JSON 문자열)
+ */
 string getLines() {
   string response_buffer;
   try {
@@ -100,6 +114,12 @@ string getLines() {
   return response_buffer;
 }
 
+/**
+ * @brief 라인 크로싱 설정 정보를 PUT 요청으로 서버에 전송합니다.
+ *
+ * @param crossLine 전송할 라인 정보 구조체
+ * @return HTTP 응답 본문 (JSON 문자열)
+ */
 string putLines(CrossLine crossLine) {
   string response_buffer;
   try {
@@ -231,6 +251,12 @@ string putLines(CrossLine crossLine) {
   return response_buffer;
 }
 
+/**
+ * @brief 지정한 인덱스의 라인 크로싱 설정을 DELETE 요청으로 삭제합니다.
+ *
+ * @param index 삭제할 라인 인덱스
+ * @return HTTP 응답 본문 (JSON 문자열)
+ */
 string deleteLines(int index) {
   string response_buffer;
   try {

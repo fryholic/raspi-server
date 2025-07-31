@@ -24,46 +24,32 @@ string getLines() {
     }
     // --- curl 명령어 옵션 설정 시작 ---
     // 2.1. URL 설정
-    // 'https://192.168.0.137/opensdk/WiseAI/configuration/linecrossing'
-    curl_easy_setopt(
-        curl_handle, CURLOPT_URL,
-        "https://192.168.0.137/opensdk/WiseAI/configuration/linecrossing");
+    string url = "https://" + g_config.host + "/opensdk/WiseAI/configuration/linecrossing";
+    curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
 
     // 2.2. HTTP 메서드 설정 (GET)
-    // -X GET 옵션은 CURLOPT_CUSTOMREQUEST로도 설정 가능하지만,
-    // 기본이 GET이라 명시적으로 할 필요는 거의 없어요.
-    // curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "GET");
+    // 기본이 GET이라 명시적으로 설정할 필요 없음
 
-    // 2.3. 인증 설정 (--digest -u admin:admin123@)
-    // 다이제스트 인증 (CURLAUTH_DIGEST)과 사용자명:비밀번호 설정
+    // 2.3. 인증 설정
     curl_easy_setopt(curl_handle, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
-    curl_easy_setopt(curl_handle, CURLOPT_USERPWD, "admin:admin123@");
+    string auth_str = g_config.username + ":" + g_config.password;
+    curl_easy_setopt(curl_handle, CURLOPT_USERPWD, auth_str.c_str());
 
-    // 2.4. HTTPS 인증서 검증 비활성화 (--insecure)
-    // 경고: 개발/테스트 환경에서만 사용하세요. 실제 운영 환경에서는 보안상 매우
-    // 위험합니다!
-    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER,
-                     0L);  // 피어(서버) 인증서 검증 안 함
-    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST,
-                     0L);  // 호스트 이름 검증 안 함 (0L은 이전 버전과의
-                           // 호환성을 위해 사용됨)
-    // 최신 curl에서는 CURLOPT_SSL_VERIFYHOST를 0으로 설정하면 경고를 낼 수
-    // 있으며, 1 (CA 파일 검증) 또는 2 (호스트네임과 CA 모두 검증)를 권장합니다.
+    // 2.4. HTTPS 인증서 검증 비활성화
+    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST, 0L);
 
-    // 2.5. 커스텀 헤더 설정 (-H 옵션들)
-    // struct curl_slist를 사용하여 헤더 목록을 만들고 추가해요.
+    // 2.5. 커스텀 헤더 설정
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Accept: application/json");
     headers = curl_slist_append(headers, "Content-Type: application/json");
-    headers = curl_slist_append(
-        headers, "Cookie: TRACKID=0842ca6f0d90294ea7de995c40a4aac6");
-    headers = curl_slist_append(headers, "Origin: https://192.168.0.137");
-    headers = curl_slist_append(
-        headers,
-        "Referer: "
-        "https://192.168.0.137/home/setup/opensdk/html/WiseAI/index.html");
-    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER,
-                     headers);  // 헤더 목록을 curl에 설정
+    string cookie_header = "Cookie: TRACKID=" + g_config.trackid;
+    headers = curl_slist_append(headers, cookie_header.c_str());
+    string origin_header = "Origin: https://" + g_config.host;
+    headers = curl_slist_append(headers, origin_header.c_str());
+    string referer_header = "Referer: https://" + g_config.host + "/home/setup/opensdk/html/WiseAI/index.html";
+    headers = curl_slist_append(headers, referer_header.c_str());
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headers);
 
     // 2.6. 압축 지원 (--compressed)
     // Accept-Encoding 헤더를 자동으로 추가하여 서버가 압축된 응답을 보내도록
@@ -129,17 +115,32 @@ string putLines(CrossLine crossLine) {
     }
     // --- curl 명령어 옵션 설정 시작 ---
     // 2.1. URL 설정
-    // 'https://192.168.0.137/opensdk/WiseAI/configuration/linecrossing'
-    curl_easy_setopt(
-        curl_handle, CURLOPT_URL,
-        "https://192.168.0.137/opensdk/WiseAI/configuration/linecrossing");
+    string url = "https://" + g_config.host + "/opensdk/WiseAI/configuration/linecrossing";
+    curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
 
+    // 2.2. HTTP 메서드 설정
     curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "PUT");
 
-    // 2.3. 인증 설정 (--digest -u admin:admin123@)
-    // 다이제스트 인증 (CURLAUTH_DIGEST)과 사용자명:비밀번호 설정
+    // 2.3. 인증 설정
     curl_easy_setopt(curl_handle, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
-    curl_easy_setopt(curl_handle, CURLOPT_USERPWD, "admin:admin123@");
+    string auth_str = g_config.username + ":" + g_config.password;
+    curl_easy_setopt(curl_handle, CURLOPT_USERPWD, auth_str.c_str());
+
+    // 2.4. HTTPS 인증서 검증 비활성화
+    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST, 0L);
+
+    // 2.5. 커스텀 헤더 설정
+    struct curl_slist* headers = NULL;
+    headers = curl_slist_append(headers, "Accept: application/json");
+    headers = curl_slist_append(headers, "Content-Type: application/json");
+    string cookie_header = "Cookie: TRACKID=" + g_config.trackid;
+    headers = curl_slist_append(headers, cookie_header.c_str());
+    string origin_header = "Origin: https://" + g_config.host;
+    headers = curl_slist_append(headers, origin_header.c_str());
+    string referer_header = "Referer: https://" + g_config.host + "/home/setup/opensdk/html/WiseAI/index.html";
+    headers = curl_slist_append(headers, referer_header.c_str());
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headers);
 
     json curlRoot;
     curlRoot["channel"] = 0;
@@ -181,32 +182,8 @@ string putLines(CrossLine crossLine) {
                      insert_json_string.c_str());  // 데이터 포인터
     curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE,
                      insert_json_string.length());  // 데이터 길이
-
-    // 2.4. HTTPS 인증서 검증 비활성화 (--insecure)
-    // 경고: 개발/테스트 환경에서만 사용하세요. 실제 운영 환경에서는 보안상 매우
-    // 위험합니다!
-    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER,
-                     0L);  // 피어(서버) 인증서 검증 안 함
-    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST,
-                     0L);  // 호스트 이름 검증 안 함 (0L은 이전 버전과의
-                           // 호환성을 위해 사용됨)
-    // 최신 curl에서는 CURLOPT_SSL_VERIFYHOST를 0으로 설정하면 경고를 낼 수
-    // 있으며, 1 (CA 파일 검증) 또는 2 (호스트네임과 CA 모두 검증)를 권장합니다.
-
-    // 2.5. 커스텀 헤더 설정 (-H 옵션들)
-    // struct curl_slist를 사용하여 헤더 목록을 만들고 추가해요.
-    struct curl_slist* headers = NULL;
-    headers = curl_slist_append(headers, "Accept: application/json");
-    headers = curl_slist_append(headers, "Content-Type: application/json");
-    headers = curl_slist_append(
-        headers, "Cookie: TRACKID=0842ca6f0d90294ea7de995c40a4aac6");
-    headers = curl_slist_append(headers, "Origin: https://192.168.0.137");
-    headers = curl_slist_append(
-        headers,
-        "Referer: "
-        "https://192.168.0.137/home/setup/opensdk/html/WiseAI/index.html");
-    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER,
-                     headers);  // 헤더 목록을 curl에 설정
+                     
+    // Note: SSL 및 헤더 설정은 이미 setup_common_headers에서 처리됨
 
     // 2.6. 압축 지원 (--compressed)
     // Accept-Encoding 헤더를 자동으로 추가하여 서버가 압축된 응답을 보내도록
@@ -269,44 +246,32 @@ string deleteLines(int index) {
     }
     // --- curl 명령어 옵션 설정 시작 ---
     // 2.1. URL 설정
-    string deleteUrl =
-        "https://192.168.0.137/opensdk/WiseAI/configuration/linecrossing/"
-        "line?channel=0&index=" +
-        to_string(index);
+    string deleteUrl = "https://" + g_config.host + "/opensdk/WiseAI/configuration/linecrossing/line?channel=0&index=" + to_string(index);
     curl_easy_setopt(curl_handle, CURLOPT_URL, deleteUrl.c_str());
 
+    // 2.2. HTTP 메서드 설정
     curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "DELETE");
 
-    // 2.3. 인증 설정 (--digest -u admin:admin123@)
-    // 다이제스트 인증 (CURLAUTH_DIGEST)과 사용자명:비밀번호 설정
+    // 2.3. 인증 설정
     curl_easy_setopt(curl_handle, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
-    curl_easy_setopt(curl_handle, CURLOPT_USERPWD, "admin:admin123@");
+    string auth_str = g_config.username + ":" + g_config.password;
+    curl_easy_setopt(curl_handle, CURLOPT_USERPWD, auth_str.c_str());
 
-    // 2.4. HTTPS 인증서 검증 비활성화 (--insecure)
-    // 경고: 개발/테스트 환경에서만 사용하세요. 실제 운영 환경에서는 보안상 매우
-    // 위험합니다!
-    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER,
-                     0L);  // 피어(서버) 인증서 검증 안 함
-    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST,
-                     0L);  // 호스트 이름 검증 안 함 (0L은 이전 버전과의
-                           // 호환성을 위해 사용됨)
-    // 최신 curl에서는 CURLOPT_SSL_VERIFYHOST를 0으로 설정하면 경고를 낼 수
-    // 있으며, 1 (CA 파일 검증) 또는 2 (호스트네임과 CA 모두 검증)를 권장합니다.
+    // 2.4. HTTPS 인증서 검증 비활성화
+    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST, 0L);
 
-    // 2.5. 커스텀 헤더 설정 (-H 옵션들)
-    // struct curl_slist를 사용하여 헤더 목록을 만들고 추가해요.
+    // 2.5. 커스텀 헤더 설정
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Accept: application/json");
     headers = curl_slist_append(headers, "Content-Type: application/json");
-    headers = curl_slist_append(
-        headers, "Cookie: TRACKID=0842ca6f0d90294ea7de995c40a4aac6");
-    headers = curl_slist_append(headers, "Origin: https://192.168.0.137");
-    headers = curl_slist_append(
-        headers,
-        "Referer: "
-        "https://192.168.0.137/home/setup/opensdk/html/WiseAI/index.html");
-    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER,
-                     headers);  // 헤더 목록을 curl에 설정
+    string cookie_header = "Cookie: TRACKID=" + g_config.trackid;
+    headers = curl_slist_append(headers, cookie_header.c_str());
+    string origin_header = "Origin: https://" + g_config.host;
+    headers = curl_slist_append(headers, origin_header.c_str());
+    string referer_header = "Referer: https://" + g_config.host + "/home/setup/opensdk/html/WiseAI/index.html";
+    headers = curl_slist_append(headers, referer_header.c_str());
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headers);
 
     // 2.6. 압축 지원 (--compressed)
     // Accept-Encoding 헤더를 자동으로 추가하여 서버가 압축된 응답을 보내도록

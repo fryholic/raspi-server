@@ -20,7 +20,7 @@ mutex bbox_mutex;
 atomic<bool> parser_running(false);
 
 // BBox 버퍼링 관련 전역 변수
-std::atomic<int> bbox_buffer_delay_ms(2400);   // 기본값 2.4초
+std::atomic<int> bbox_buffer_delay_ms(2000);   // 기본값 2.4초
 std::atomic<int> bbox_send_interval_ms(50);   // 기본값 50ms
 std::queue<TimestampedBBox> bbox_buffer;
 std::mutex bbox_buffer_mutex;

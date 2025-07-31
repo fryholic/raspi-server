@@ -13,9 +13,9 @@ clean:
 
 # TCP, RTSP 서버
 
-server: server.o rtsp_server.o tcp_server.o request_handlers.o utils.o db_management.o metadata_parser.o hash.o ssl.o curl_camera.o $(OTP_OBJ)
-	$(CXX) server.o src/rtsp_server.o src/tcp_server.o src/request_handlers.o src/utils.o src/db_management.o src/metadata_parser.o src/hash.o src/ssl.o src/curl_camera.o $(OTP_OBJ) -o server $(LDFLAGS)
 
+server: server.o rtsp_server.o tcp_server.o request_handlers.o utils.o db_management.o metadata_parser.o hash.o ssl.o curl_camera.o config_manager.o $(OTP_OBJ)
+	$(CXX) server.o src/rtsp_server.o src/tcp_server.o src/request_handlers.o src/utils.o src/db_management.o src/metadata_parser.o src/hash.o src/ssl.o src/curl_camera.o src/config_manager.o $(OTP_OBJ) -o server $(LDFLAGS)
 
 server.o: server.cpp src/metadata_parser.hpp
 	$(CXX) -c server.cpp $(CXXFLAGS)
@@ -41,13 +41,18 @@ metadata_parser.o: src/metadata_parser.cpp src/metadata_parser.hpp
 hash.o: src/hash.cpp src/hash.hpp
 	$(CXX) -c src/hash.cpp -o src/hash.o $(CXXFLAGS)
 
+
 ssl.o: src/ssl.cpp src/ssl.hpp
 	$(CXX) -c src/ssl.cpp -o src/ssl.o $(CXXFLAGS)
 
 curl_camera.o: src/curl_camera.cpp src/curl_camera.hpp
 	$(CXX) -c src/curl_camera.cpp -o src/curl_camera.o $(CXXFLAGS)
 
+config_manager.o: src/config_manager.cpp src/config_manager.hpp
+	$(CXX) -c src/config_manager.cpp -o src/config_manager.o -std=c++17
+
+
 # 메타데이터, 감지 처리 서버
 
-metadata/control: src/metadata/main_control.cpp src/metadata/board_control.cpp
-	$(CXX) src/metadata/main_control.cpp src/metadata/board_control.cpp -o control -lSQLiteCpp -lsqlite3 --std=c++17
+metadata/control: src/metadata/main_control.cpp src/metadata/board_control.cpp src/config_manager.o
+	$(CXX) src/metadata/main_control.cpp src/metadata/board_control.cpp src/config_manager.o -o control -lSQLiteCpp -lsqlite3 --std=c++17

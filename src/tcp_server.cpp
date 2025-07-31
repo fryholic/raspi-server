@@ -1,6 +1,10 @@
 #include "tcp_server.hpp"
+
 #include "request_handlers.hpp"
 #include "utils.hpp"
+
+#include "config_manager.hpp"
+
 
 #include <unordered_map>
 #include <memory>
@@ -168,9 +172,13 @@ void handle_client(int client_socket, SQLite::Database& db, std::mutex& db_mutex
     cleanup_client_connection(ssl, client_socket, bbox_push_enabled, push_thread, metadata_thread);
 }
 
-// ==================== TCP 서버 메인 로직 ====================
-
 int tcp_run() {
+    // 설정 로드
+    if (!load_all_config()) {
+    cerr << "[ERROR] 설정 로드 실패" << endl;
+    return -1;
+    }
+    
     // OpenSSL 초기화
     if (!init_openssl()) {
         cerr << "OpenSSL 초기화 실패" << endl;

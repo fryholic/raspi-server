@@ -6,6 +6,7 @@
 #include <mutex>
 #include <cstring>
 #include <atomic>
+
 #include <chrono>
 #include <queue>
 #include "json.hpp"
@@ -40,6 +41,7 @@ inline std::vector<ServerBBox> parseServerBBoxes(const nlohmann::json& bboxArray
     }
     return boxes;
 }
+
 
 // BBox 버퍼링을 위한 구조체
 struct TimestampedBBox {

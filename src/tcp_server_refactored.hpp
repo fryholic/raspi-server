@@ -67,22 +67,18 @@ using json = nlohmann::json;
 
 const int PORT = 8080;
 
-// ==================== 기존 함수들 (curl_camera.cpp에서 정의됨) ====================
+// ==================== 기존 함수들 ====================
 string getLines();
 string putLines(CrossLine);
 string deleteLines(int index);
-
-// ==================== 유틸리티 함수들 ====================
-void printNowTimeKST();
 string base64_encode(const vector<unsigned char>& in);
 int tcp_run();
-
-// SSL 관련 함수들 (ssl.cpp에서 정의됨)
 bool recvAll(SSL*, char* buffer, size_t len);
 ssize_t sendAll(SSL*, const char* buffer, size_t len, int flags);
-
-// BBox 관련 함수들
+void printNowTimeKST();
 bool send_bboxes_to_client(SSL* ssl);
+
+// BBox 버퍼 관리 함수
 void update_bbox_buffer(const std::vector<ServerBBox>& new_bboxes);
 void clear_bbox_buffer();
 

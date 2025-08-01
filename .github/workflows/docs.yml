@@ -17,8 +17,7 @@ jobs:
     
     - name: Build Documentation
       run: |
-        cd docs
-        doxygen Doxyfile
+        doxygen docs/Doxyfile
     
     - name: Fix Korean translations
       run: |

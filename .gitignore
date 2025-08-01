@@ -17,3 +17,6 @@ server.key
 *.sql
 
 .env
+
+/build
+build/

@@ -1,3 +1,9 @@
+/**
+ * @file hash.cpp
+ * @brief 비밀번호 및 복구 코드 해싱 구현 파일
+ * @details 이 파일은 Argon2id 알고리즘을 사용하여 비밀번호와 복구 코드를 해싱하고 검증하는 기능을 제공합니다. 또한 복구 코드를 생성하는 기능도 포함합니다.
+ */
+
 #include "hash.hpp"
 
 
@@ -66,8 +72,8 @@ std::vector<std::string> hash_recovery_codes(const std::vector<std::string>& cod
 
 /**
  * @brief 복구 코드를 생성합니다.
- *
- * @return 10자리의 랜덤한 알파벳 대소문자와 숫자로 이루어진 복구 코드 문자열 벡터
+ * @details 이 함수는 10자리의 랜덤한 알파벳 대소문자와 숫자로 이루어진 복구 코드를 생성합니다.
+ * @return 생성된 복구 코드 문자열 벡터
  */
 std::vector<std::string> generate_recovery_codes() {
     static const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

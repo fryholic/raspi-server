@@ -1,3 +1,9 @@
+/**
+ * @file config_manager.hpp
+ * @brief 설정 관리 헤더 파일
+ * @details 이 파일은 서버 설정을 저장하는 구조체와 설정 로드 관련 함수들의 선언을 포함합니다.
+ */
+
 #pragma once
 
 #include <string>

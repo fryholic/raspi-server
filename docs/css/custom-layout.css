@@ -1,0 +1,181 @@
+/* Custom CSS for better layout - Override doxygen's default table layout */
+
+/* Reset and improve title area layout */
+#titlearea {
+    border-bottom: 1px solid var(--separator-color);
+    background: var(--page-background-color);
+    padding: 15px 20px;
+    position: relative;
+    display: block !important;
+}
+
+/* Hide the default table structure completely */
+#titlearea table,
+#titlearea tbody,
+#titlearea tr {
+    display: none !important;
+}
+
+/* Create our own layout using CSS after hiding the table */
+#titlearea::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+/* Override the table-based layout with flexbox */
+#titlearea {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    min-height: 50px;
+    box-sizing: border-box;
+}
+
+/* Project name styling - position it on the left */
+#projectname {
+    font-size: 28px !important;
+    font-weight: bold !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+    color: var(--page-foreground-color) !important;
+    flex: 1;
+    text-align: left !important;
+}
+
+/* Search box - position it on the right with proper spacing */
+.MSearchBox {
+    margin: 0 60px 0 auto !important;
+    white-space: nowrap !important;
+    position: relative !important;
+    z-index: 100 !important;
+}
+
+.MSearchBoxInactive,
+.MSearchBoxActive {
+    display: inline-block !important;
+    margin: 0 !important;
+    padding: 6px 12px !important;
+    border: 1px solid var(--separator-color) !important;
+    border-radius: 4px !important;
+    background: var(--code-background) !important;
+    font-size: 14px !important;
+}
+
+#MSearchField {
+    background: transparent !important;
+    border: none !important;
+    color: var(--page-foreground-color) !important;
+    font-size: 14px !important;
+    outline: none !important;
+    width: 150px !important;
+}
+
+/* Dark mode toggle positioning - ensure it's always visible */
+html[data-theme] .darkmode-toggle,
+.darkmode-toggle {
+    position: fixed !important;
+    top: 40px !important;
+    right: 15px !important;
+    z-index: 9999 !important;
+    background: var(--primary-color) !important;
+    border: 1px solid var(--separator-color) !important;
+    border-radius: 4px !important;
+    padding: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    width: 36px !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+}
+
+.darkmode-toggle:hover {
+    background: var(--primary-dark-color) !important;
+    transform: scale(1.05) !important;
+}
+
+/* Ensure proper vertical alignment */
+#titlearea > * {
+    vertical-align: middle !important;
+}
+
+/* Project logo if present */
+#projectlogo {
+    margin-right: 15px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+#projectlogo img {
+    max-height: 40px !important;
+    max-width: 150px !important;
+}
+
+/* Project brief styling */
+#projectbrief {
+    font-size: 14px !important;
+    color: var(--page-secondary-foreground-color) !important;
+    margin: 2px 0 0 0 !important;
+    padding: 0 !important;
+    line-height: 1.3 !important;
+}
+
+/* Better responsive behavior */
+@media screen and (max-width: 768px) {
+    #titlearea {
+        padding: 10px 15px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+    }
+    
+    .MSearchBox {
+        margin: 0 !important;
+        align-self: center !important;
+    }
+    
+    #projectname {
+        font-size: 24px !important;
+        text-align: center !important;
+        width: 100% !important;
+    }
+    
+    .darkmode-toggle {
+        top: 15px !important;
+        right: 15px !important;
+        position: fixed !important;
+    }
+}
+
+/* Force override any remaining table styling */
+#titlearea td,
+#titlearea th {
+    display: none !important;
+}
+
+/* Additional cleanup */
+#projectalign {
+    display: inline-block !important;
+    width: auto !important;
+}
+
+/* Adjust sidebar/treeview position to give more space for dark mode toggle */
+#side-nav {
+    top: 100px !important; /* Move sidebar down to completely clear header area */
+    height: calc(100vh - 150px) !important; /* Adjust height accordingly */
+}
+
+/* Ensure main content area also adjusts */
+.contents {
+    margin-top: 20px !important;
+}
+
+/* Additional spacing for nav tree */
+#nav-tree {
+    padding-top: 10px !important;
+}

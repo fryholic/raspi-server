@@ -1,3 +1,9 @@
+/**
+ * @file ssl.hpp
+ * @brief SSL 통신 헤더 파일
+ * @details 이 파일은 OpenSSL을 사용하여 SSL/TLS 통신을 초기화, 설정 및 관리하는 함수와 변수의 선언을 포함합니다.
+ */
+
 #pragma once
 #include <mutex>
 #include <openssl/ssl.h>

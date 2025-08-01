@@ -1,3 +1,9 @@
+/**
+ * @file curl_camera.cpp
+ * @brief libcurl을 사용한 카메라 통신 구현 파일
+ * @details 이 파일은 libcurl을 활용하여 카메라와의 HTTP 통신을 처리하는 기능을 제공합니다.
+ */
+
 #include "curl_camera.hpp"
 
 /**

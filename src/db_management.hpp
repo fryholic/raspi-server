@@ -1,3 +1,9 @@
+/**
+ * @file db_management.hpp
+ * @brief 데이터베이스 관리 헤더 파일
+ * @details 이 파일은 SQLite 데이터베이스와 상호작용하는 함수와 구조체의 선언을 포함합니다.
+ */
+
 // SQLite DB detections 테이블 관리 모듈
 
 #pragma once
@@ -22,6 +28,7 @@ struct Detection {
 
 /**
  * @brief 감지선 정보를 저장하는 구조체
+ * @details 이 구조체는 감지선의 좌표, 이름, 감지 모드 등의 정보를 저장합니다.
  */
 struct CrossLine {
   int index; ///< 라인 인덱스
@@ -36,6 +43,7 @@ struct CrossLine {
 
 /**
  * @brief 기준선 좌표 정보를 저장하는 구조체
+ * @details 이 구조체는 기준선의 좌표와 관련된 정보를 저장합니다.
  */
 struct BaseLine {
   int index; ///< 기준선 인덱스
@@ -50,6 +58,7 @@ struct BaseLine {
 
 /**
  * @brief 수직선 방정식(ax+b=0) 정보를 저장하는 구조체
+ * @details 이 구조체는 수직선의 기울기와 절편 정보를 저장합니다.
  */
 struct VerticalLineEquation {
   int index; ///< 수직선 인덱스
@@ -60,6 +69,7 @@ struct VerticalLineEquation {
 
 /**
  * @brief 사용자 계정 정보를 저장하는 구조체
+ * @details 이 구조체는 사용자 ID, 비밀번호, OTP 시크릿, OTP 사용 여부를 저장합니다.
  */
 struct Account {
   std::string id; ///< 사용자 ID
@@ -71,6 +81,7 @@ struct Account {
 
 /**
  * @brief 복구 코드 정보를 저장하는 구조체
+ * @details 이 구조체는 복구 코드와 사용 여부를 저장합니다.
  */
 struct RecoveryCode {
     std::string id; ///< 사용자 ID

@@ -1,3 +1,9 @@
+/**
+ * @file metadata_parser.hpp
+ * @brief 메타데이터 파싱 헤더 파일
+ * @details 이 파일은 RTSP 스트림에서 메타데이터를 파싱하고 BBox 정보를 관리하는 함수와 구조체의 선언을 포함합니다.
+ */
+
 #ifndef METADATA_PARSER_HPP
 #define METADATA_PARSER_HPP
 
@@ -54,6 +60,7 @@ inline std::vector<ServerBBox> parseServerBBoxes(const nlohmann::json& bboxArray
 
 /**
  * @brief BBox와 타임스탬프를 함께 저장하는 구조체 (버퍼용)
+ * @details 이 구조체는 BBox 데이터와 해당 데이터의 수신 시각을 함께 저장합니다.
  */
 struct TimestampedBBox {
     std::chrono::steady_clock::time_point timestamp; ///< 데이터 수신 시각

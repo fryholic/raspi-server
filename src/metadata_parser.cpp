@@ -1,3 +1,9 @@
+/**
+ * @file metadata_parser.cpp
+ * @brief 메타데이터 파싱 구현 파일
+ * @details 이 파일은 RTSP 스트림에서 메타데이터를 파싱하여 BBox 정보를 추출하고 관리하는 기능을 제공합니다.
+ */
+
 #include "metadata_parser.hpp"
 #include <iostream>
 #include <regex>
@@ -22,32 +28,38 @@ vector<ServerBBox> latest_bboxes;
 
 /**
  * @brief latest_bboxes 보호용 뮤텍스
+ * @details 최근에 파싱된 BBox 목록을 보호하기 위한 뮤텍스입니다.
  */
 mutex bbox_mutex;
 
 /**
  * @brief 메타데이터 파서 실행 여부 플래그
+ * @details 메타데이터 파서가 실행 중인지 여부를 나타내는 플래그입니다.
  */
 atomic<bool> parser_running(false);
 
 
 /**
  * @brief BBox 버퍼 지연(ms), 기본값 2400ms
+ * @details BBox 데이터를 버퍼에 저장할 때 적용되는 지연 시간입니다. 기본값은 2000ms입니다.
  */
 std::atomic<int> bbox_buffer_delay_ms(2000);
 
 /**
  * @brief BBox 전송 간격(ms), 기본값 50ms
+ * @details 클라이언트로 BBox 데이터를 전송하는 간격입니다. 기본값은 50ms입니다.
  */
 std::atomic<int> bbox_send_interval_ms(50);
 
 /**
  * @brief BBox 버퍼 (타임스탬프 포함)
+ * @details 타임스탬프와 함께 저장된 BBox 데이터를 관리하는 큐입니다.
  */
 std::queue<TimestampedBBox> bbox_buffer;
 
 /**
  * @brief bbox_buffer 보호용 뮤텍스
+ * @details BBox 버퍼를 보호하기 위한 뮤텍스입니다.
  */
 std::mutex bbox_buffer_mutex;
 

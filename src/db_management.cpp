@@ -1,3 +1,9 @@
+/**
+ * @file db_management.cpp
+ * @brief 데이터베이스 관리 구현 파일
+ * @details 이 파일은 SQLite 데이터베이스와 상호작용하는 함수들을 구현합니다. 테이블 생성, 데이터 삽입, 조회, 삭제 등의 기능을 제공합니다.
+ */
+
 // g++ -o db_management db_management.cpp -l SQLiteCpp -l sqlite3 -std=c++17
 #include "db_management.hpp"
 
@@ -20,6 +26,7 @@ void create_table_detections(SQLite::Database& db) {
 
 /**
  * @brief Detections 테이블에 데이터를 삽입합니다.
+ * @details 이 함수는 Detections 테이블에 새로운 데이터를 추가합니다. SQL 인젝션 방지를 위해 Prepared Statement를 사용합니다.
  * @param db SQLite 데이터베이스 참조
  * @param detection 삽입할 Detection 구조체
  * @return 성공 시 true, 실패 시 false
@@ -101,6 +108,7 @@ void delete_all_data_detections(SQLite::Database& db) {
 
 /**
  * @brief Lines 테이블을 생성합니다.
+ * @details 이 함수는 Lines 테이블을 생성하며, 테이블이 이미 존재하면 아무 작업도 수행하지 않습니다.
  * @param db SQLite 데이터베이스 참조
  */
 void create_table_lines(SQLite::Database& db) {

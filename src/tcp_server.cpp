@@ -1,3 +1,9 @@
+/**
+ * @file tcp_server.cpp
+ * @brief TCP 서버 구현 파일
+ * @details 이 파일은 TCP 서버의 주요 기능을 구현하며, 클라이언트 연결 처리, SSL 설정, 데이터베이스 초기화 및 요청 라우팅을 포함합니다.
+ */
+
 #include "tcp_server.hpp"
 
 #include "request_handlers.hpp"

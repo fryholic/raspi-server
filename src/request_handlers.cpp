@@ -1,3 +1,9 @@
+/**
+ * @file request_handlers.cpp
+ * @brief 클라이언트 요청 처리 구현 파일
+ * @details 이 파일은 클라이언트 요청을 처리하는 다양한 핸들러 함수들을 구현합니다. 데이터베이스 접근, JSON 응답 생성, SSL 통신 등을 포함합니다.
+ */
+
 #include "request_handlers.hpp"
 #include "tcp_server.hpp"
 #include "curl_camera.hpp"
@@ -17,6 +23,7 @@ static OTPManager otp_manager;
 
 /**
  * @brief JSON 객체를 직렬화하여 SSL을 통해 클라이언트로 전송합니다.
+ * @details 이 함수는 JSON 객체를 문자열로 변환한 후, SSL을 통해 클라이언트로 전송합니다.
  * @param ssl OpenSSL SSL 포인터
  * @param response 전송할 JSON 객체
  */

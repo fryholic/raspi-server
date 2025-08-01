@@ -1,0 +1,35 @@
+name: Build and Deploy Documentation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Doxygen
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y doxygen graphviz
+    
+    - name: Build Documentation
+      run: |
+        cd docs
+        doxygen Doxyfile
+    
+    - name: Fix Korean translations
+      run: |
+        cd docs/html
+        # Replace "문서화" with "Documentation" in all HTML files
+        find . -name "*.html" -type f -exec sed -i 's/문서화/Documentation/g' {} \;
+    
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/html
+        publish_branch: gh-pages

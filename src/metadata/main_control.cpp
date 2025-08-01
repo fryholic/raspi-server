@@ -1,3 +1,8 @@
+/**
+ * @file main_control.cpp
+ * @brief 메타데이터 분석 및 보드 제어 메인 로직 구현 파일
+ */
+
 #include <iostream>
 #include <unordered_map>
 #include <string>
@@ -22,21 +27,28 @@
 
 using namespace std;
 
-// 구조체 정의
+/**
+ * @brief 2차원 좌표를 나타내는 구조체
+ */
 struct Point {
-    float x;
-    float y;
+    float x; ///< X 좌표
+    float y; ///< Y 좌표
 };
 
+/**
+ * @brief 선(시작점, 끝점, 모드, 이름) 정보를 담는 구조체
+ */
 struct Line {
-    Point start;
-    Point end;
-    string mode;
-    string name;
+    Point start; ///< 시작점
+    Point end;   ///< 끝점
+    string mode; ///< 라인 모드
+    string name; ///< 라인 이름
 };
 
 
-// 보드-포트 매핑 테이블
+/**
+ * @brief 보드 ID와 포트 경로 매핑 테이블
+ */
 std::vector<std::pair<int, std::string>> board_info = {
     {1, "/dev/ttyAMA0"},
     {2, "/dev/ttyAMA2"},
@@ -44,7 +56,11 @@ std::vector<std::pair<int, std::string>> board_info = {
     {4, "/dev/ttyAMA3"}
 };
 
-// 보드 ID → 포트 경로 조회 함수
+/**
+ * @brief 보드 ID로 포트 경로를 조회합니다.
+ * @param board_id 보드 ID
+ * @return 포트 경로 문자열 (없으면 빈 문자열)
+ */
 std::string get_uart_port_for_board(int board_id) {
     for (const auto& [id, port] : board_info) {
         if (id == board_id) return port;
@@ -53,32 +69,88 @@ std::string get_uart_port_for_board(int board_id) {
 }
 
 // --- 전역 상태 ---
+
+/**
+ * @brief 데이터 보호용 재귀 뮤텍스
+ */
 recursive_mutex data_mutex;
 
-// DB에서 로드될 좌표 및 설정값
+/**
+ * @brief DB에서 로드된 기준선 쌍 (id1, p1, id2, p2)
+ */
 vector<tuple<int, Point, int, Point>> base_line_pairs;
+
+/**
+ * @brief 기준선 교차점(중앙점)
+ */
 Point dot_center = {0, 0};
+
+/**
+ * @brief 라인 이름 → Line 구조체 매핑
+ */
 unordered_map<string, Line> rule_lines;
 
-// 객체 이동 경로를 저장하는 구조체
+/**
+ * @brief 객체 이동 경로를 저장하는 구조체
+ */
 struct ObjectState {
-    deque<Point> history;
+    deque<Point> history; ///< 이동 이력
 };
 
-// 차량 이동 경로 이력 저장
+/**
+ * @brief 차량 ID → 이동 이력 매핑
+ */
 unordered_map<int, ObjectState> vehicle_trajectory_history;
 
 
 // --- 함수 선언 ---
+
+/**
+ * @brief 위험 분석 및 경고 처리
+ * @param db SQLite 데이터베이스 객체
+ * @param human_id 이벤트 발생 인간의 ID
+ * @param rule_name 이벤트 발생 라인 이름
+ * @param utc_time_str 이벤트 발생 시간(UTC)
+ */
 void analyze_risk_and_alert(SQLite::Database& db, int human_id, const string& rule_name, const string& utc_time_str);
+
+/**
+ * @brief 두 벡터의 코사인 유사도 계산
+ * @param a 벡터 a
+ * @param b 벡터 b
+ * @return 코사인 유사도 값 (단위 벡터가 아니면 -2.0f 반환)
+ */
 float compute_cosine_similarity(const Point& a, const Point& b);
+
+/**
+ * @brief 화면을 캡처하여 DB에 저장
+ * @param db SQLite 데이터베이스 객체
+ * @param utc_time_str UTC 시간 문자열
+ */
 void capture_screen_and_save(SQLite::Database& db, const string& utc_time_str);
+
+/**
+ * @brief 보드에 명령 전송
+ * @param board_id 보드 ID
+ * @param cmd 명령 코드
+ */
 void control_board(int board_id, uint8_t cmd);
+
+/**
+ * @brief 비동기 보드 제어 (스레드)
+ * @param board_id 보드 ID
+ * @param utc_time_str UTC 시간 문자열
+ */
 void control_board_async(int board_id, const string& utc_time_str);
 
 
 // --- 보드제어 관련 함수 ---
 
+/**
+ * @brief 보드에 명령을 전송하고 결과를 출력합니다.
+ * @param board_id 보드 ID
+ * @param cmd 명령 코드
+ */
 void control_board(int board_id, uint8_t cmd) {
     std::string port = get_uart_port_for_board(board_id);
     if (port.empty()) {
@@ -101,7 +173,11 @@ void control_board(int board_id, uint8_t cmd) {
     }
 }
 
-// 비동기 보드 제어 함수 (별도 스레드에서 실행)
+/**
+ * @brief 비동기(스레드)로 보드 제어 및 화면 캡처를 수행합니다.
+ * @param board_id 보드 ID
+ * @param utc_time_str UTC 시간 문자열
+ */
 void control_board_async(int board_id, const string& utc_time_str) {
     cout << "[INFO] Starting async board control for board " << board_id << endl;
     
@@ -136,7 +212,10 @@ void control_board_async(int board_id, const string& utc_time_str) {
 
 // --- DB 관련 함수 ---
 
-// Detections 테이블 생성
+/**
+ * @brief Detections 테이블을 생성합니다.
+ * @param db SQLite 데이터베이스 객체
+ */
 void create_detections_table(SQLite::Database& db) {
     db.exec("CREATE TABLE IF NOT EXISTS detections (" 
             "id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -145,7 +224,12 @@ void create_detections_table(SQLite::Database& db) {
     cout << "[INFO] 'detections' table is ready." << endl;
 }
 
-// DB에 이미지 삽입
+/**
+ * @brief DB에 이미지 데이터를 삽입합니다.
+ * @param db SQLite 데이터베이스 객체
+ * @param image_data 이미지 데이터 벡터
+ * @param timestamp 타임스탬프 문자열
+ */
 void insert_data(SQLite::Database& db, const vector<unsigned char>& image_data, const string& timestamp) {
     try {
         SQLite::Statement query(db, "INSERT INTO detections (image, timestamp) VALUES (?, ?)");
@@ -158,7 +242,15 @@ void insert_data(SQLite::Database& db, const vector<unsigned char>& image_data, 
     }
 }
 
-// 점과 점으로 이루어진 두 직선의 교차점 구하는 함수, dot_center 구하기
+/**
+ * @brief 두 직선의 교차점을 계산합니다.
+ * @param a1 첫 번째 직선의 시작점
+ * @param a2 첫 번째 직선의 끝점
+ * @param b1 두 번째 직선의 시작점
+ * @param b2 두 번째 직선의 끝점
+ * @param intersection 교차점 좌표(출력)
+ * @return 교차점이 존재하면 true, 평행하면 false
+ */
 bool calculate_intersection(const Point& a1, const Point& a2,
                             const Point& b1, const Point& b2,
                             Point& intersection) {
@@ -178,7 +270,10 @@ bool calculate_intersection(const Point& a1, const Point& a2,
     return true;
 }
 
-// DB에서 Dots(보조선) 좌표 로드 및 dot_center 계산
+/**
+ * @brief DB에서 Dots(보조선) 좌표를 로드하고 dot_center를 계산합니다.
+ * @param db SQLite 데이터베이스 객체
+ */
 void load_dots_and_center(SQLite::Database& db) {
     cout << "[INFO] Loading baseLines from DB..." << endl;
 
@@ -234,8 +329,10 @@ void load_dots_and_center(SQLite::Database& db) {
     }
 }
 
-
-// DB에서 Rule Lines(가상선) 정보 로드
+/**
+ * @brief DB에서 Rule Lines(가상선) 정보를 로드합니다.
+ * @param db SQLite 데이터베이스 객체
+ */
 void load_rule_lines(SQLite::Database& db) {
     cout << "[INFO] Loading rule lines from DB..." << endl;
 
@@ -271,7 +368,11 @@ void load_rule_lines(SQLite::Database& db) {
 
 // --- 핵심 로직 함수 ---
 
-// 화면을 캡처하고 DB에 저장
+/**
+ * @brief 화면을 캡처하고 DB에 저장합니다.
+ * @param db SQLite 데이터베이스 객체
+ * @param utc_time_str UTC 시간 문자열
+ */
 void capture_screen_and_save(SQLite::Database& db, const string& utc_time_str) {
     if (utc_time_str.empty()) {
         cerr << "[ERROR] Cannot capture screen. UTC time is empty." << endl;
@@ -328,14 +429,23 @@ void capture_screen_and_save(SQLite::Database& db, const string& utc_time_str) {
     }
 }
 
-
-// 블럭 내에 VideoAnalytics 프레임이 포함되어 있는지 확인
+/**
+ * @brief 블럭 내에 VideoAnalytics 프레임이 포함되어 있는지 확인합니다.
+ * @param block XML 블럭 문자열
+ * @return VideoAnalytics 프레임이 포함되어 있으면 true
+ */
 bool contains_frame_block(const string& block) {
     return block.find("<tt:VideoAnalytics>") != string::npos &&
            block.find("<tt:Frame") != string::npos;
 }
 
-// 라인크로싱 이벤트 블럭인지 확인하고 ObjectId와 RuleName을 추출
+/**
+ * @brief 라인크로싱 이벤트 블럭인지 확인하고 ObjectId와 RuleName을 추출합니다.
+ * @param event_block 이벤트 XML 블럭
+ * @param object_id 추출된 ObjectId (출력)
+ * @param rule_name 추출된 RuleName (출력)
+ * @return 라인크로싱 이벤트이면 true, 아니면 false
+ */
 bool is_linecrossing_event(const string& event_block, string& object_id, string& rule_name) {
     regex topic_regex("<wsnt:Topic[^>]*>([^<]*)</wsnt:Topic>");
     smatch topic_match;
@@ -363,7 +473,12 @@ bool is_linecrossing_event(const string& event_block, string& object_id, string&
     return false;
 }
 
-// ObjectId로 객체 타입이 Human인지 확인
+/**
+ * @brief ObjectId로 객체 타입이 Human인지 확인합니다.
+ * @param block XML 블럭 문자열
+ * @param object_id 확인할 ObjectId
+ * @return Human이면 true, 아니면 false
+ */
 bool is_human(const string& block, const string& object_id) {
     regex object_block_regex("<tt:Object ObjectId=\"" + object_id + "\"[\\s\\S]*?<tt:Type[^>]*>([^<]*)</tt:Type>");
     smatch match;
@@ -374,7 +489,11 @@ bool is_human(const string& block, const string& object_id) {
     return false;
 }
 
-// 프레임에서 차량 위치 업데이트
+/**
+ * @brief 프레임에서 차량 위치를 업데이트하고 사라진 차량을 정리합니다.
+ * @param frame_block 프레임 XML 블럭
+ * @param frame_cache 최근 프레임 캐시
+ */
 void update_vehicle_positions(const string& frame_block, const deque<string>& frame_cache) {
     //cout << "[DEBUG] Entering update_vehicle_positions()" << endl;
 
@@ -440,7 +559,13 @@ void update_vehicle_positions(const string& frame_block, const deque<string>& fr
     //cout << "[DEBUG] Exiting update_vehicle_positions()" << endl;
 }
 
-// 위험 분석 및 경고 로직
+/**
+ * @brief 위험 분석 및 경고 로직을 수행합니다.
+ * @param db SQLite 데이터베이스 객체
+ * @param human_id 이벤트 발생 인간의 ID
+ * @param rule_name 이벤트 발생 라인 이름
+ * @param utc_time_str 이벤트 발생 시간(UTC)
+ */
 void analyze_risk_and_alert(SQLite::Database& db, int human_id, const string& rule_name, const string& utc_time_str) {
     lock_guard<recursive_mutex> lock(data_mutex);
 
@@ -537,9 +662,12 @@ void analyze_risk_and_alert(SQLite::Database& db, int human_id, const string& ru
     }
 }
 
-
-
-// 코사인 유사도 계산
+/**
+ * @brief 두 벡터의 코사인 유사도를 계산합니다.
+ * @param a 벡터 a
+ * @param b 벡터 b
+ * @return 코사인 유사도 값 (단위 벡터가 아니면 -2.0f 반환)
+ */
 float compute_cosine_similarity(const Point& a, const Point& b) {
     float dot = a.x * b.x + a.y * b.y;
     float mag_a = sqrt(a.x * a.x + a.y * a.y);
@@ -548,8 +676,10 @@ float compute_cosine_similarity(const Point& a, const Point& b) {
     return dot / (mag_a * mag_b);
 }
 
-
-// ffmpeg 메타데이터 처리 루프
+/**
+ * @brief ffmpeg 메타데이터 스트림을 처리하는 루프 함수입니다.
+ * @param db SQLite 데이터베이스 객체
+ */
 void metadata_thread(SQLite::Database& db) {
     cout << "[INFO] FFmpeg 메타데이터 스트림을 시작합니다..." << endl;
 
@@ -640,6 +770,11 @@ void metadata_thread(SQLite::Database& db) {
 
 
 // --- 메인 진입점 ---
+
+/**
+ * @brief 프로그램 메인 함수 (메타데이터 모니터링 및 분석)
+ * @return 실행 결과 코드
+ */
 int main() {
     cout << "[INFO] 메타데이터 모니터링을 시작합니다..." << endl;
     

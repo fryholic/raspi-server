@@ -1,3 +1,9 @@
+/**
+ * @file ssl.cpp
+ * @brief SSL 통신 구현 파일
+ * @details 이 파일은 OpenSSL을 사용하여 SSL/TLS 통신을 초기화, 설정 및 관리하는 기능을 제공합니다.
+ */
+
 #include "ssl.hpp"
 #include <iostream>
 
@@ -24,6 +30,7 @@ bool init_openssl() {
 
 /**
  * @brief OpenSSL 라이브러리 정리
+ * @details OpenSSL에서 사용된 리소스를 정리합니다.
  */
 void cleanup_openssl() {
     EVP_cleanup();
@@ -45,6 +52,7 @@ SSL_CTX* create_ssl_context() {
 
 /**
  * @brief SSL 컨텍스트에 인증서와 개인키를 설정합니다.
+ * @details 이 함수는 SSL 컨텍스트에 서버 인증서와 개인키를 설정하여 TLS 통신을 준비합니다.
  * @param ctx SSL_CTX 포인터
  */
 void configure_ssl_context(SSL_CTX* ctx) {

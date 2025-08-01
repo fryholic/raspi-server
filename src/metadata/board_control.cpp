@@ -1,25 +1,61 @@
+/**
+ * @file board_control.cpp
+ * @brief 보드 제어를 위한 BoardController 클래스 구현 파일
+ */
 #include "board_control.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
 #include <iostream>
 
-
-
+/**
+ * @brief 8비트 값을 비트 단위로 반전합니다.
+ * @param val 반전할 값
+ * @param bits 반전할 비트 수
+ * @return 반전된 값
+ */
 uint8_t reverse(uint8_t val, int bits);
+
+/**
+ * @brief 데이터 벡터에 대해 CRC16을 계산합니다.
+ * @param data CRC를 계산할 데이터 벡터
+ * @return 계산된 CRC16 값
+ */
 uint16_t crc16(const std::vector<uint8_t>& data);
+
+/**
+ * @brief 16비트 값을 비트 단위로 반전합니다.
+ * @param val 반전할 값
+ * @param bits 반전할 비트 수
+ * @return 반전된 값
+ */
 uint16_t reverse16(uint16_t val, int bits);
 
+
+/**
+ * @brief BoardController 생성자
+ * @param device 시리얼 포트 디바이스 경로
+ * @param board_id 보드 ID (1부터 시작)
+ */
 BoardController::BoardController(const std::string& device, int board_id)
     : id(board_id)
 {
     open_port(device);
 }
 
+
+/**
+ * @brief BoardController 소멸자. 포트를 닫습니다.
+ */
 BoardController::~BoardController() {
     close(fd);
 }
 
+
+/**
+ * @brief 시리얼 포트를 엽니다.
+ * @param device 포트 디바이스 경로
+ */
 void BoardController::open_port(const std::string& device) {
     fd = open(device.c_str(), O_RDWR | O_NOCTTY);
     if (fd < 0) {
@@ -40,32 +76,58 @@ void BoardController::open_port(const std::string& device) {
     tcsetattr(fd, TCSANOW, &tty);
 }
 
+
+/**
+ * @brief LCD ON 명령을 보냅니다.
+ */
 void BoardController::send_lcd_on() {
     send_frame(CMD_LCD_ON);
 }
 
+
+/**
+ * @brief LCD OFF 명령을 보냅니다.
+ */
 void BoardController::send_lcd_off() {
     send_frame(CMD_LCD_OFF);
 }
 
-// Send command frame with no extra payload
+
+/**
+ * @brief 추가 데이터 없이 명령 프레임을 전송합니다.
+ * @param command 전송할 명령 코드
+ */
 void BoardController::send_frame(uint8_t command) {
     auto frame = encode_frame(command, {});
     write(fd, frame.data(), frame.size());
 }
 
-// Send LED command and wait for ACK with retry
+
+/**
+ * @brief LCD ON 명령을 전송하고 ACK를 대기합니다.
+ * @param retries 재시도 횟수
+ * @param timeout_ms 타임아웃(ms)
+ * @return 성공 시 true, 실패 시 false
+ */
 bool BoardController::send_lcd_on_with_ack(int retries, int timeout_ms) {
     return send_frame_with_ack(CMD_LCD_ON, retries, timeout_ms);
 }
 
+/**
+ * @brief LCD OFF 명령을 전송하고 ACK를 대기합니다.
+ * @param retries 재시도 횟수
+ * @param timeout_ms 타임아웃(ms)
+ * @return 성공 시 true, 실패 시 false
+ */
 bool BoardController::send_lcd_off_with_ack(int retries, int timeout_ms) {
     return send_frame_with_ack(CMD_LCD_OFF, retries, timeout_ms);
 }
 
 
-
-// Send time sync command based on system localtime in 12-hour format
+/**
+ * @brief 시스템의 현재 로컬타임(12시간제)으로 시간 동기화 명령을 보냅니다.
+ * @return 항상 true 반환
+ */
 bool BoardController::send_time_sync_from_system() {
     time_t now = time(nullptr);
     struct tm* t = localtime(&now);
@@ -94,7 +156,14 @@ bool BoardController::send_time_sync_from_system() {
 }
 
 
-// Send a command and wait for ACK/NACK
+
+/**
+ * @brief 명령을 전송하고 ACK/NACK을 대기합니다.
+ * @param command 전송할 명령 코드
+ * @param retries 재시도 횟수
+ * @param timeout_ms 타임아웃(ms)
+ * @return 성공 시 true, 실패 시 false
+ */
 bool BoardController::send_frame_with_ack(uint8_t command, int retries, int timeout_ms) {
     auto frame = encode_frame(command, {});
     for (int attempt = 0; attempt < retries; ++attempt) {
@@ -152,15 +221,20 @@ bool BoardController::send_frame_with_ack(uint8_t command, int retries, int time
     return false;
 }
 
-// Encode command + extra data as DLE-STX/ETX framed UART frame
+
+/**
+ * @brief 명령 및 추가 데이터를 DLE-STX/ETX 프레임으로 인코딩합니다.
+ * @param command 명령 코드
+ * @param extra_data 추가 데이터 벡터
+ * @return 인코딩된 프레임 벡터
+ */
 std::vector<uint8_t> BoardController::encode_frame(uint8_t command, const std::vector<uint8_t>& extra_data) {
     uint8_t dst_mask = 1 << (id - 1);
 
     std::vector<uint8_t> payload = { dst_mask, command };
     payload.insert(payload.end(), extra_data.begin(), extra_data.end());
 
-
-     // FIX: CRC over full payload
+    // CRC 전체 payload에 대해 계산
     std::vector<uint8_t> crc_input = payload;
     uint16_t crc = crc16(crc_input);
 
@@ -177,7 +251,15 @@ std::vector<uint8_t> BoardController::encode_frame(uint8_t command, const std::v
     return frame;
 }
 
+
 // --- CRC Functions ---
+
+/**
+ * @brief 8비트 값을 비트 단위로 반전합니다.
+ * @param val 반전할 값
+ * @param bits 반전할 비트 수
+ * @return 반전된 값
+ */
 uint8_t reverse(uint8_t val, int bits) {
     uint8_t res = 0;
     for (int i = 0; i < bits; ++i)
@@ -185,6 +267,12 @@ uint8_t reverse(uint8_t val, int bits) {
     return res;
 }
 
+/**
+ * @brief 16비트 값을 비트 단위로 반전합니다.
+ * @param val 반전할 값
+ * @param bits 반전할 비트 수
+ * @return 반전된 값
+ */
 uint16_t reverse16(uint16_t val, int bits) {
     uint16_t res = 0;
     for (int i = 0; i < bits; ++i)
@@ -192,6 +280,11 @@ uint16_t reverse16(uint16_t val, int bits) {
     return res;
 }
 
+/**
+ * @brief 데이터 벡터에 대해 CRC16을 계산합니다.
+ * @param data CRC를 계산할 데이터 벡터
+ * @return 계산된 CRC16 값
+ */
 uint16_t crc16(const std::vector<uint8_t>& data) {
     uint16_t crc = 0;
     for (auto b : data) {

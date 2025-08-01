@@ -1,3 +1,9 @@
+
+/**
+ * @file send_time.cpp
+ * @brief 여러 보드에 시간 동기화 프레임을 주기적으로 전송하는 예제
+ */
+
 #include <iostream>
 #include <ctime>
 #include <iomanip>
@@ -7,12 +13,27 @@
 #include <vector>
 #include <cstring>
 
+
+/// @def DLE
+/// @brief Data Link Escape (프레임 구분용)
 #define DLE  0x10
+/// @def STX
+/// @brief Start of Text (프레임 시작)
 #define STX  0x02
+/// @def ETX
+/// @brief End of Text (프레임 끝)
 #define ETX  0x03
+/// @def CMD_SYNC_TIME
+/// @brief 시간 동기화 명령 코드
 #define CMD_SYNC_TIME 0x03
+/// @def NUM_BOARDS
+/// @brief 보드 개수
 #define NUM_BOARDS 4
 
+
+/**
+ * @brief 각 보드 ID에 대응하는 시리얼 포트 경로
+ */
 const char* SERIAL_PORTS[NUM_BOARDS] = {
     "/dev/ttyAMA0",  // ID 1
     "/dev/ttyAMA2",  // ID 2
@@ -20,6 +41,13 @@ const char* SERIAL_PORTS[NUM_BOARDS] = {
     "/dev/ttyAMA3"   // ID 4
 };
 
+
+/**
+ * @brief 8비트 값을 비트 단위로 반전합니다.
+ * @param val 반전할 값
+ * @param bits 반전할 비트 수
+ * @return 반전된 값
+ */
 uint8_t reverse(uint8_t val, int bits) {
     uint8_t res = 0;
     for (int i = 0; i < bits; ++i)
@@ -27,6 +55,13 @@ uint8_t reverse(uint8_t val, int bits) {
     return res;
 }
 
+
+/**
+ * @brief 16비트 값을 비트 단위로 반전합니다.
+ * @param val 반전할 값
+ * @param bits 반전할 비트 수
+ * @return 반전된 값
+ */
 uint16_t reverse16(uint16_t val, int bits) {
     uint16_t res = 0;
     for (int i = 0; i < bits; ++i)
@@ -34,6 +69,12 @@ uint16_t reverse16(uint16_t val, int bits) {
     return res;
 }
 
+
+/**
+ * @brief 데이터 벡터에 대해 CRC16을 계산합니다.
+ * @param data CRC를 계산할 데이터 벡터
+ * @return 계산된 CRC16 값
+ */
 uint16_t crc16(const std::vector<uint8_t>& data) {
     uint16_t crc = 0;
     for (auto b : data) {
@@ -44,6 +85,12 @@ uint16_t crc16(const std::vector<uint8_t>& data) {
     return reverse16(crc, 16) & 0xFFFF;
 }
 
+
+/**
+ * @brief 시리얼 포트를 엽니다.
+ * @param device 포트 디바이스 경로
+ * @return 파일 디스크립터
+ */
 int open_serial(const char* device) {
     int fd = open(device, O_RDWR | O_NOCTTY);
     if (fd < 0) {
@@ -70,6 +117,14 @@ int open_serial(const char* device) {
     return fd;
 }
 
+
+/**
+ * @brief 명령 및 추가 데이터를 DLE-STX/ETX 프레임으로 인코딩합니다.
+ * @param cmd 명령 코드
+ * @param board_id 대상 보드 ID (1부터 시작)
+ * @param extra_data 추가 데이터 벡터
+ * @return 인코딩된 프레임 벡터
+ */
 std::vector<uint8_t> encode_frame(uint8_t cmd, int board_id, const std::vector<uint8_t>& extra_data) {
     uint8_t dst_mask = 1 << (board_id - 1);
     std::vector<uint8_t> payload = { dst_mask, cmd };
@@ -93,6 +148,11 @@ std::vector<uint8_t> encode_frame(uint8_t cmd, int board_id, const std::vector<u
     return frame;
 }
 
+
+/**
+ * @brief 프로그램 메인 함수. 모든 보드에 주기적으로 시간 동기화 프레임을 전송합니다.
+ * @return 실행 결과 코드
+ */
 int main() {
     int fds[NUM_BOARDS];
     for (int i = 0; i < NUM_BOARDS; ++i) {

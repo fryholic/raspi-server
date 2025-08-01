@@ -1,3 +1,9 @@
+/**
+ * @file config_manager.cpp
+ * @brief 설정 관리 구현 파일
+ * @details 이 파일은 환경 변수와 JSON 설정 파일을 로드하여 전역 설정을 초기화하고 관리하는 기능을 제공합니다.
+ */
+
 #include "config_manager.hpp"
 #include "json.hpp"
 #include <fstream>

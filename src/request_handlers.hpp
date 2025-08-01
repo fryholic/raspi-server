@@ -1,4 +1,8 @@
-// 요청 처리 함수들 헤더 파일
+/**
+ * @file request_handlers.hpp
+ * @brief 클라이언트 요청 처리 헤더 파일
+ * @details 이 파일은 클라이언트 요청을 처리하는 함수들의 선언을 포함합니다. 데이터베이스 접근, JSON 응답 생성, SSL 통신 등을 지원합니다.
+ */
 
 #pragma once
 

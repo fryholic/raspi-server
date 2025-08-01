@@ -1,6 +1,11 @@
-// RTSP 송수신 모듈 of 서버 Pi
-// 엣지 디바이스 Pi로부터 영상 수신, 클라이언트 Windows로 영상 송신
-// 이 코드의 RTSP 서버 주소 : rtsp://<ip주소>:8554/retransmit
+
+/**
+ * @file rtsp_server.cpp
+ * @brief RTSP 송수신 모듈 (서버 Pi)
+ *
+ * 엣지 디바이스 Pi로부터 영상을 수신하고, 클라이언트(Windows)로 영상을 송신합니다.
+ * RTSP 서버 주소 예시: rtsp://<ip주소>:8554/retransmit
+ */
 
 #include "rtsp_server.hpp"
 #include "config_manager.hpp"
@@ -10,6 +15,11 @@
 #define CCTV_MOUNT_POINT_ALT "/retransmit"  // 기존 클라이언트 호환성을 위한 대체 경로
 #define NIGHT_CCTV_MOUNT_POINT "/night"
 
+/**
+ * @brief RTSP 서버를 실행합니다. (GStreamer 기반)
+ * @param argc 인자 개수
+ * @param argv 인자 배열
+ */
 void rtsp_run(int argc, char *argv[]) {
   // 설정 로드
   if (!load_all_config()) {
@@ -63,7 +73,7 @@ void rtsp_run(int argc, char *argv[]) {
   "h264parse ! "
   "avdec_h264 ! "
   "queue ! "
-  "videobalance brightness=0.3 contrast=1.5 ! "
+  "videobalance brightness=0.19 contrast=0.7 ! "
   // "videogamma gamma=0.7 ! " // 현재 버전에서 지원안함
   // "unsharp ! " // 현재 버전에서 지원안함
   "x264enc tune=zerolatency ! "

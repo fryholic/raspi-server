@@ -3,6 +3,11 @@ name: Build and Deploy Documentation
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   build-docs:
     runs-on: ubuntu-latest
@@ -37,10 +42,14 @@ jobs:
         # Replace "문서화" with "Documentation" in all HTML files
         find . -name "*.html" -type f -exec sed -i 's/문서화/Documentation/g' {} \;
     
-    - name: Deploy to GitHub Pages
-      if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v3
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs/html
-        publish_branch: gh-pages
+        path: './docs/html'
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

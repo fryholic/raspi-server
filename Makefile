@@ -55,4 +55,4 @@ config_manager.o: src/config_manager.cpp src/config_manager.hpp
 # 메타데이터, 감지 처리 서버
 
 metadata/control: src/metadata/main_control.cpp src/metadata/board_control.cpp src/config_manager.o
-	$(CXX) src/metadata/main_control.cpp src/metadata/board_control.cpp src/config_manager.o -o control -lSQLiteCpp -lsqlite3 --std=c++17
+	$(CXX) src/metadata/main_control.cpp src/metadata/board_control.cpp src/config_manager.o -o control -lSQLiteCpp -lsqlite3 --std=c++17 $(LDFLAGS)

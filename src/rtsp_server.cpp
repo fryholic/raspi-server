@@ -73,7 +73,7 @@ void rtsp_run(int argc, char *argv[]) {
   "h264parse ! "
   "avdec_h264 ! "
   "queue ! "
-  "videobalance brightness=0.3 contrast=1.5 ! "
+  "videobalance brightness=0.19 contrast=0.7 ! "
   // "videogamma gamma=0.7 ! " // 현재 버전에서 지원안함
   // "unsharp ! " // 현재 버전에서 지원안함
   "x264enc tune=zerolatency ! "

@@ -15,6 +15,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y doxygen graphviz
     
+    - name: Debug - Check file structure
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Files in root:"
+        ls -la
+        echo "Files in docs directory:"
+        ls -la docs/
+        echo "Checking if Doxyfile exists:"
+        test -f docs/Doxyfile && echo "Doxyfile exists" || echo "Doxyfile not found"
+    
     - name: Build Documentation
       run: |
         doxygen docs/Doxyfile

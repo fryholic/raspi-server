@@ -1,10 +1,12 @@
 FROM --platform=linux/arm64 debian:bookworm
 
-# 작업 디렉토리 설정 
+# 컨테이너 내부 작업 디렉토리
 WORKDIR /app
 
 # 패키지 목록 업데이트 및 필수 패키지 설치
-RUN apt update && apt install -y \
+RUN apt update 
+
+RUN apt install -y \
     build-essential \
     cmake \
     pkg-config \

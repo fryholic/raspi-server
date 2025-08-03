@@ -1,18 +1,26 @@
 ## Linux Raspberry Pi
 
 ### 필요 패키지 설치 명령어 :
-```
+```bash
 sudo apt update
-sudo apt install libgstreamer1.0-dev libgstrtspserver-1.0-dev
-sudo apt install libcurl4-openssl-dev
-sudo apt install libsodium-dev
+sudo apt install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    libgstreamer1.0-dev \
+    libgstrtspserver-1.0-dev \
+    libsqlitecpp-dev \
+    libsodium-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
 ```
 
+
 ### (Optional) 부가 패키지 설치 명령어 :
+```bash
+sudo apt install sqlite3    # sqlite db 수동 조작용
 ```
-sudo apt install sqlite3 // sqlite db 수동 조작용
-sudo apt install clang-format // 코드 스타일 적용 자동화
-```
+
 
 ### OpenSSL용 서버 키 생성 가이드 :
 https://wldh0026.atlassian.net/wiki/x/A4DL

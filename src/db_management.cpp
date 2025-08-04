@@ -1,7 +1,8 @@
 /**
  * @file db_management.cpp
  * @brief 데이터베이스 관리 구현 파일
- * @details 이 파일은 SQLite 데이터베이스와 상호작용하는 함수들을 구현합니다. 테이블 생성, 데이터 삽입, 조회, 삭제 등의 기능을 제공합니다.
+ * @details 이 파일은 SQLite 데이터베이스와 상호작용하는 함수들을 구현합니다. 테이블 생성, 데이터 삽입, 조회, 삭제 등의
+ * 기능을 제공합니다.
  */
 
 // g++ -o db_management db_management.cpp -l SQLiteCpp -l sqlite3 -std=c++17
@@ -14,41 +15,44 @@
  * @brief Detections 테이블을 생성합니다.
  * @param db SQLite 데이터베이스 참조
  */
-void create_table_detections(SQLite::Database& db) {
-  db.exec(
-      "CREATE TABLE IF NOT EXISTS detections ("
-      "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-      "image BLOB, "
-      "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL)");
-  cout << "'detections' 테이블이 준비되었습니다.\n";
-  return;
+void create_table_detections(SQLite::Database& db)
+{
+    db.exec("CREATE TABLE IF NOT EXISTS detections ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "image BLOB, "
+            "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL)");
+    cout << "'detections' 테이블이 준비되었습니다.\n";
+    return;
 }
 
 /**
  * @brief Detections 테이블에 데이터를 삽입합니다.
- * @details 이 함수는 Detections 테이블에 새로운 데이터를 추가합니다. SQL 인젝션 방지를 위해 Prepared Statement를 사용합니다.
+ * @details 이 함수는 Detections 테이블에 새로운 데이터를 추가합니다. SQL 인젝션 방지를 위해 Prepared Statement를
+ * 사용합니다.
  * @param db SQLite 데이터베이스 참조
  * @param detection 삽입할 Detection 구조체
  * @return 성공 시 true, 실패 시 false
  */
-bool insert_data_detections(SQLite::Database& db, Detection detection) {
-  try {
-    // SQL 인젝션 방지를 위해 Prepared Statement 사용
-    SQLite::Statement query(
-        db, "INSERT INTO detections (image, timestamp) VALUES (?, ?)");
-    query.bind(1, detection.imageBlob.data(), detection.imageBlob.size());
-    query.bind(2, detection.timestamp);
-    cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
-    query.exec();
+bool insert_data_detections(SQLite::Database& db, Detection detection)
+{
+    try
+    {
+        // SQL 인젝션 방지를 위해 Prepared Statement 사용
+        SQLite::Statement query(db, "INSERT INTO detections (image, timestamp) VALUES (?, ?)");
+        query.bind(1, detection.imageBlob.data(), detection.imageBlob.size());
+        query.bind(2, detection.timestamp);
+        cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
+        query.exec();
 
-    cout << "데이터 추가: (시간: " << detection.timestamp << ")" << endl;
-  } catch (const exception& e) {
-    // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
-    cerr << "데이터 '" << detection.timestamp << "' 추가 실패: " << e.what()
-         << endl;
-    return false;
-  }
-  return true;
+        cout << "데이터 추가: (시간: " << detection.timestamp << ")" << endl;
+    }
+    catch (const exception& e)
+    {
+        // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
+        cerr << "데이터 '" << detection.timestamp << "' 추가 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -58,49 +62,54 @@ bool insert_data_detections(SQLite::Database& db, Detection detection) {
  * @param endTimestamp 종료 타임스탬프
  * @return Detection 벡터
  */
-vector<Detection> select_data_for_timestamp_range_detections(
-    SQLite::Database& db, string startTimestamp, string endTimestamp) {
-  vector<Detection> detections;
-  try {
-    SQLite::Statement query(db,
-                            "SELECT * FROM detections WHERE timestamp BETWEEN "
-                            "? AND ? ORDER BY timestamp");
-    query.bind(1, startTimestamp);
-    query.bind(2, endTimestamp);
-    cout << "Prepared SQL for select data vector: " << query.getExpandedSQL()
-         << endl;
-    while (query.executeStep()) {
-      const unsigned char* ucharBlobData =
-          static_cast<const unsigned char*>(query.getColumn("image").getBlob());
-      int blobSize = query.getColumn("image").getBytes();
-      vector<unsigned char> image(ucharBlobData, ucharBlobData + blobSize);
+vector<Detection> select_data_for_timestamp_range_detections(SQLite::Database& db, string startTimestamp,
+                                                             string endTimestamp)
+{
+    vector<Detection> detections;
+    try
+    {
+        SQLite::Statement query(db, "SELECT * FROM detections WHERE timestamp BETWEEN "
+                                    "? AND ? ORDER BY timestamp");
+        query.bind(1, startTimestamp);
+        query.bind(2, endTimestamp);
+        cout << "Prepared SQL for select data vector: " << query.getExpandedSQL() << endl;
+        while (query.executeStep())
+        {
+            const unsigned char* ucharBlobData = static_cast<const unsigned char*>(query.getColumn("image").getBlob());
+            int blobSize = query.getColumn("image").getBytes();
+            vector<unsigned char> image(ucharBlobData, ucharBlobData + blobSize);
 
-      string timestamp = query.getColumn("timestamp");
+            string timestamp = query.getColumn("timestamp");
 
-      Detection detection = {image, timestamp};
-      detections.push_back(detection);
+            Detection detection = {image, timestamp};
+            detections.push_back(detection);
+        }
     }
-  } catch (const exception& e) {
-    cerr << "사용자 조회 실패: " << e.what() << endl;
-  }
-  return detections;
+    catch (const exception& e)
+    {
+        cerr << "사용자 조회 실패: " << e.what() << endl;
+    }
+    return detections;
 }
 
 /**
  * @brief Detections 테이블의 모든 데이터를 삭제합니다.
  * @param db SQLite 데이터베이스 참조
  */
-void delete_all_data_detections(SQLite::Database& db) {
-  try {
-    SQLite::Statement query(db, "DELETE FROM detections");
-    cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
-    int changes = query.exec();
-    cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes
-         << endl;
-  } catch (const exception& e) {
-    cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
-  }
-  return;
+void delete_all_data_detections(SQLite::Database& db)
+{
+    try
+    {
+        SQLite::Statement query(db, "DELETE FROM detections");
+        cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
+        int changes = query.exec();
+        cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes << endl;
+    }
+    catch (const exception& e)
+    {
+        cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
+    }
+    return;
 }
 
 ///////////////////////////////////////////////
@@ -111,18 +120,18 @@ void delete_all_data_detections(SQLite::Database& db) {
  * @details 이 함수는 Lines 테이블을 생성하며, 테이블이 이미 존재하면 아무 작업도 수행하지 않습니다.
  * @param db SQLite 데이터베이스 참조
  */
-void create_table_lines(SQLite::Database& db) {
-  db.exec(
-      "CREATE TABLE IF NOT EXISTS lines (" 
-      "indexNum INTEGER PRIMARY KEY NOT NULL, "
-      "x1 INTEGER NOT NULL , "
-      "y1 INTEGER NOT NULL , "
-      "x2 INTEGER NOT NULL , "
-      "y2 INTEGER NOT NULL , "
-      "name TEXT NOT NULL UNIQUE , "
-      "mode TEXT )");  // mode = "Right", "Left", "BothDirections"
-  cout << "'lines' 테이블이 준비되었습니다.\n";
-  return;
+void create_table_lines(SQLite::Database& db)
+{
+    db.exec("CREATE TABLE IF NOT EXISTS lines ("
+            "indexNum INTEGER PRIMARY KEY NOT NULL, "
+            "x1 INTEGER NOT NULL , "
+            "y1 INTEGER NOT NULL , "
+            "x2 INTEGER NOT NULL , "
+            "y2 INTEGER NOT NULL , "
+            "name TEXT NOT NULL UNIQUE , "
+            "mode TEXT )"); // mode = "Right", "Left", "BothDirections"
+    cout << "'lines' 테이블이 준비되었습니다.\n";
+    return;
 }
 
 /**
@@ -131,30 +140,32 @@ void create_table_lines(SQLite::Database& db) {
  * @param crossLine 삽입할 CrossLine 구조체
  * @return 성공 시 true, 실패 시 false
  */
-bool insert_data_lines(SQLite::Database& db, CrossLine crossLine) {
-  try {
-    // SQL 인젝션 방지를 위해 Prepared Statement 사용
-    SQLite::Statement query(
-        db,
-        "INSERT INTO lines (indexNum, x1, y1, x2, y2, name, mode) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)");
-    query.bind(1, crossLine.index);
-    query.bind(2, crossLine.x1);
-    query.bind(3, crossLine.y1);
-    query.bind(4, crossLine.x2);
-    query.bind(5, crossLine.y2);
-    query.bind(6, crossLine.name);
-    query.bind(7, crossLine.mode);
-    cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
-    query.exec();
+bool insert_data_lines(SQLite::Database& db, CrossLine crossLine)
+{
+    try
+    {
+        // SQL 인젝션 방지를 위해 Prepared Statement 사용
+        SQLite::Statement query(db, "INSERT INTO lines (indexNum, x1, y1, x2, y2, name, mode) "
+                                    "VALUES (?, ?, ?, ?, ?, ?, ?)");
+        query.bind(1, crossLine.index);
+        query.bind(2, crossLine.x1);
+        query.bind(3, crossLine.y1);
+        query.bind(4, crossLine.x2);
+        query.bind(5, crossLine.y2);
+        query.bind(6, crossLine.name);
+        query.bind(7, crossLine.mode);
+        cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
+        query.exec();
 
-    cout << "데이터 추가: (인덱스: " << crossLine.index << ")" << endl;
-  } catch (const exception& e) {
-    // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
-    cerr << "데이터 '" << crossLine.name << "' 추가 실패: " << e.what() << endl;
-    return false;
-  }
-  return true;
+        cout << "데이터 추가: (인덱스: " << crossLine.index << ")" << endl;
+    }
+    catch (const exception& e)
+    {
+        // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
+        cerr << "데이터 '" << crossLine.name << "' 추가 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -162,28 +173,32 @@ bool insert_data_lines(SQLite::Database& db, CrossLine crossLine) {
  * @param db SQLite 데이터베이스 참조
  * @return CrossLine 벡터
  */
-vector<CrossLine> select_all_data_lines(SQLite::Database& db) {
-  vector<CrossLine> lines;
-  try {
-    SQLite::Statement query(db, "SELECT * FROM lines ORDER BY name");
-    cout << "Prepared SQL for select data vector: " << query.getExpandedSQL()
-         << endl;
-    while (query.executeStep()) {
-      int indexNum = query.getColumn("indexNum").getInt();
-      int x1 = query.getColumn("x1").getInt();
-      int y1 = query.getColumn("y1").getInt();
-      int x2 = query.getColumn("x2").getInt();
-      int y2 = query.getColumn("y2").getInt();
-      string name = query.getColumn("name");
-      string mode = query.getColumn("mode");
+vector<CrossLine> select_all_data_lines(SQLite::Database& db)
+{
+    vector<CrossLine> lines;
+    try
+    {
+        SQLite::Statement query(db, "SELECT * FROM lines ORDER BY name");
+        cout << "Prepared SQL for select data vector: " << query.getExpandedSQL() << endl;
+        while (query.executeStep())
+        {
+            int indexNum = query.getColumn("indexNum").getInt();
+            int x1 = query.getColumn("x1").getInt();
+            int y1 = query.getColumn("y1").getInt();
+            int x2 = query.getColumn("x2").getInt();
+            int y2 = query.getColumn("y2").getInt();
+            string name = query.getColumn("name");
+            string mode = query.getColumn("mode");
 
-      CrossLine line = {indexNum, x1, y1, x2, y2, name, mode};
-      lines.push_back(line);
+            CrossLine line = {indexNum, x1, y1, x2, y2, name, mode};
+            lines.push_back(line);
+        }
     }
-  } catch (const exception& e) {
-    cerr << "사용자 조회 실패: " << e.what() << endl;
-  }
-  return lines;
+    catch (const exception& e)
+    {
+        cerr << "사용자 조회 실패: " << e.what() << endl;
+    }
+    return lines;
 }
 
 /**
@@ -192,23 +207,27 @@ vector<CrossLine> select_all_data_lines(SQLite::Database& db) {
  * @param indexNum 삭제할 인덱스 번호
  * @return 성공 시 true, 실패 시 false
  */
-bool delete_data_lines(SQLite::Database& db, int indexNum) {
-  try {
-    SQLite::Statement query(db, "DELETE FROM lines WHERE indexNum = ?");
-    query.bind(1, indexNum);
+bool delete_data_lines(SQLite::Database& db, int indexNum)
+{
+    try
+    {
+        SQLite::Statement query(db, "DELETE FROM lines WHERE indexNum = ?");
+        query.bind(1, indexNum);
 
-    cout << "Prepared SQL for delete one: " << query.getExpandedSQL() << endl;
-    int changes = query.exec();
-    cout << "테이블의 특정 데이터를 삭제했습니다. 삭제된 행 수: " << changes
-         << endl;
-    if (changes == 0) {
-      return false;
+        cout << "Prepared SQL for delete one: " << query.getExpandedSQL() << endl;
+        int changes = query.exec();
+        cout << "테이블의 특정 데이터를 삭제했습니다. 삭제된 행 수: " << changes << endl;
+        if (changes == 0)
+        {
+            return false;
+        }
     }
-  } catch (const exception& e) {
-    cerr << "테이블 특정 데이터 삭제 실패: " << e.what() << endl;
-    return false;
-  }
-  return true;
+    catch (const exception& e)
+    {
+        cerr << "테이블 특정 데이터 삭제 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -216,21 +235,25 @@ bool delete_data_lines(SQLite::Database& db, int indexNum) {
  * @param db SQLite 데이터베이스 참조
  * @return 성공 시 true, 실패 시 false
  */
-bool delete_all_data_lines(SQLite::Database& db) {
-  try {
-    SQLite::Statement query(db, "DELETE FROM lines");
-    cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
-    int changes = query.exec();
-    cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes
-         << endl;
-    if (changes == 0) {
-      return false;
+bool delete_all_data_lines(SQLite::Database& db)
+{
+    try
+    {
+        SQLite::Statement query(db, "DELETE FROM lines");
+        cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
+        int changes = query.exec();
+        cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes << endl;
+        if (changes == 0)
+        {
+            return false;
+        }
     }
-  } catch (const exception& e) {
-    cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
-    return false;
-  }
-  return true;
+    catch (const exception& e)
+    {
+        cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 ///////////////////////////////////////////////
@@ -240,18 +263,18 @@ bool delete_all_data_lines(SQLite::Database& db) {
  * @brief baseLines 테이블을 생성합니다.
  * @param db SQLite 데이터베이스 참조
  */
-void create_table_baseLines(SQLite::Database& db) {
-  db.exec(
-      "CREATE TABLE IF NOT EXISTS baseLines (" 
-      "indexNum INTEGER PRIMARY KEY, "
-      "matrixNum1 INTEGER NOT NULL, "
-      "x1 INTEGER NOT NULL, "
-      "y1 INTEGER NOT NULL, "
-      "matrixNum2 INTEGER NOT NULL, "
-      "x2 INTEGER NOT NULL, "
-      "y2 INTEGER NOT NULL)");
-  cout << "'baseLines' 테이블이 준비되었습니다.\n";
-  return;
+void create_table_baseLines(SQLite::Database& db)
+{
+    db.exec("CREATE TABLE IF NOT EXISTS baseLines ("
+            "indexNum INTEGER PRIMARY KEY, "
+            "matrixNum1 INTEGER NOT NULL, "
+            "x1 INTEGER NOT NULL, "
+            "y1 INTEGER NOT NULL, "
+            "matrixNum2 INTEGER NOT NULL, "
+            "x2 INTEGER NOT NULL, "
+            "y2 INTEGER NOT NULL)");
+    cout << "'baseLines' 테이블이 준비되었습니다.\n";
+    return;
 }
 
 /**
@@ -259,28 +282,32 @@ void create_table_baseLines(SQLite::Database& db) {
  * @param db SQLite 데이터베이스 참조
  * @return BaseLine 벡터
  */
-vector<BaseLine> select_all_data_baseLines(SQLite::Database& db) {
-  vector<BaseLine> baseLines;
-  try {
-    SQLite::Statement query(db, "SELECT * FROM baseLines");
-    cout << "Prepared SQL for select data vector: " << query.getExpandedSQL()
-         << endl;
-    while (query.executeStep()) {
-      int indexNum = query.getColumn("indexNum").getInt();
-      int matrixNum1 = query.getColumn("matrixNum1").getInt();
-      int x1 = query.getColumn("x1").getInt();
-      int y1 = query.getColumn("y1").getInt();
-      int matrixNum2 = query.getColumn("matrixNum2").getInt();
-      int x2 = query.getColumn("x2").getInt();
-      int y2 = query.getColumn("y2").getInt();
+vector<BaseLine> select_all_data_baseLines(SQLite::Database& db)
+{
+    vector<BaseLine> baseLines;
+    try
+    {
+        SQLite::Statement query(db, "SELECT * FROM baseLines");
+        cout << "Prepared SQL for select data vector: " << query.getExpandedSQL() << endl;
+        while (query.executeStep())
+        {
+            int indexNum = query.getColumn("indexNum").getInt();
+            int matrixNum1 = query.getColumn("matrixNum1").getInt();
+            int x1 = query.getColumn("x1").getInt();
+            int y1 = query.getColumn("y1").getInt();
+            int matrixNum2 = query.getColumn("matrixNum2").getInt();
+            int x2 = query.getColumn("x2").getInt();
+            int y2 = query.getColumn("y2").getInt();
 
-      BaseLine baseLine = {indexNum, matrixNum1, x1, y1, matrixNum2, x2, y2};
-      baseLines.push_back(baseLine);
+            BaseLine baseLine = {indexNum, matrixNum1, x1, y1, matrixNum2, x2, y2};
+            baseLines.push_back(baseLine);
+        }
     }
-  } catch (const exception& e) {
-    cerr << "사용자 조회 실패: " << e.what() << endl;
-  }
-  return baseLines;
+    catch (const exception& e)
+    {
+        cerr << "사용자 조회 실패: " << e.what() << endl;
+    }
+    return baseLines;
 }
 
 /**
@@ -289,31 +316,33 @@ vector<BaseLine> select_all_data_baseLines(SQLite::Database& db) {
  * @param baseLine 삽입할 BaseLine 구조체
  * @return 성공 시 true, 실패 시 false
  */
-bool insert_data_baseLines(SQLite::Database& db, BaseLine baseLine) {
-  try {
-    // SQL 인젝션 방지를 위해 Prepared Statement 사용
-    SQLite::Statement query(
-        db,
-        "INSERT INTO baseLines (indexNum, matrixNum1, x1, y1, "
-        "matrixNum2, x2, y2) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    query.bind(1, baseLine.index);
-    query.bind(2, baseLine.matrixNum1);
-    query.bind(3, baseLine.x1);
-    query.bind(4, baseLine.y1);
-    query.bind(5, baseLine.matrixNum2);
-    query.bind(6, baseLine.x2);
-    query.bind(7, baseLine.y2);
+bool insert_data_baseLines(SQLite::Database& db, BaseLine baseLine)
+{
+    try
+    {
+        // SQL 인젝션 방지를 위해 Prepared Statement 사용
+        SQLite::Statement query(db, "INSERT INTO baseLines (indexNum, matrixNum1, x1, y1, "
+                                    "matrixNum2, x2, y2) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        query.bind(1, baseLine.index);
+        query.bind(2, baseLine.matrixNum1);
+        query.bind(3, baseLine.x1);
+        query.bind(4, baseLine.y1);
+        query.bind(5, baseLine.matrixNum2);
+        query.bind(6, baseLine.x2);
+        query.bind(7, baseLine.y2);
 
-    cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
-    query.exec();
+        cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
+        query.exec();
 
-    cout << "데이터 추가: (기준선 인덱스: " << baseLine.index << ")" << endl;
-  } catch (const exception& e) {
-    // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
-    cerr << "데이터 '" << baseLine.index << "' 추가 실패: " << e.what() << endl;
-    return false;
-  }
-  return true;
+        cout << "데이터 추가: (기준선 인덱스: " << baseLine.index << ")" << endl;
+    }
+    catch (const exception& e)
+    {
+        // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
+        cerr << "데이터 '" << baseLine.index << "' 추가 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -322,28 +351,30 @@ bool insert_data_baseLines(SQLite::Database& db, BaseLine baseLine) {
  * @param baseLine 수정할 BaseLine 구조체
  * @return 성공 시 true, 실패 시 false
  */
-bool update_data_baseLines(SQLite::Database& db, BaseLine baseLine){
-  try {
-    // SQL 인젝션 방지를 위해 Prepared Statement 사용
-    SQLite::Statement query(
-        db,
-        "UPDATE baseLines "
-        "SET matrixNum1 = ?, matrixNum2 = ? "
-        "WHERE indexNum = ?");
-    query.bind(1, baseLine.matrixNum1);
-    query.bind(2, baseLine.matrixNum2);
-    query.bind(3, baseLine.index);
+bool update_data_baseLines(SQLite::Database& db, BaseLine baseLine)
+{
+    try
+    {
+        // SQL 인젝션 방지를 위해 Prepared Statement 사용
+        SQLite::Statement query(db, "UPDATE baseLines "
+                                    "SET matrixNum1 = ?, matrixNum2 = ? "
+                                    "WHERE indexNum = ?");
+        query.bind(1, baseLine.matrixNum1);
+        query.bind(2, baseLine.matrixNum2);
+        query.bind(3, baseLine.index);
 
-    cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
-    query.exec();
+        cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
+        query.exec();
 
-    cout << "데이터 수정: (기준선 인덱스: " << baseLine.index << ")" << endl;
-  } catch (const exception& e) {
-    // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
-    cerr << "데이터 '" << baseLine.index << "' 수정 실패: " << e.what() << endl;
-    return false;
-  }
-  return true;
+        cout << "데이터 수정: (기준선 인덱스: " << baseLine.index << ")" << endl;
+    }
+    catch (const exception& e)
+    {
+        // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
+        cerr << "데이터 '" << baseLine.index << "' 수정 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -351,21 +382,25 @@ bool update_data_baseLines(SQLite::Database& db, BaseLine baseLine){
  * @param db SQLite 데이터베이스 참조
  * @return 성공 시 true, 실패 시 false
  */
-bool delete_all_data_baseLines(SQLite::Database& db) {
-  try {
-    SQLite::Statement query(db, "DELETE FROM baselines");
-    cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
-    int changes = query.exec();
-    cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes
-         << endl;
-    if (changes == 0) {
-      return false;
+bool delete_all_data_baseLines(SQLite::Database& db)
+{
+    try
+    {
+        SQLite::Statement query(db, "DELETE FROM baselines");
+        cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
+        int changes = query.exec();
+        cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes << endl;
+        if (changes == 0)
+        {
+            return false;
+        }
     }
-  } catch (const exception& e) {
-    cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
-    return false;
-  }
-  return true;
+    catch (const exception& e)
+    {
+        cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 ///////////////////////////////////////////////
@@ -375,14 +410,14 @@ bool delete_all_data_baseLines(SQLite::Database& db) {
  * @brief verticalLineEquations 테이블을 생성합니다.
  * @param db SQLite 데이터베이스 참조
  */
-void create_table_verticalLineEquations(SQLite::Database& db) {
-  db.exec(
-      "CREATE TABLE IF NOT EXISTS verticalLineEquations (" 
-      "indexNum INTEGER PRIMARY KEY, "
-      "a REAL NOT NULL, "
-      "b REAL NOT NULL)");
-  cout << "'verticalLineEquations' 테이블이 준비되었습니다.\n";
-  return;
+void create_table_verticalLineEquations(SQLite::Database& db)
+{
+    db.exec("CREATE TABLE IF NOT EXISTS verticalLineEquations ("
+            "indexNum INTEGER PRIMARY KEY, "
+            "a REAL NOT NULL, "
+            "b REAL NOT NULL)");
+    cout << "'verticalLineEquations' 테이블이 준비되었습니다.\n";
+    return;
 }
 
 /**
@@ -391,27 +426,27 @@ void create_table_verticalLineEquations(SQLite::Database& db) {
  * @param index 조회할 인덱스
  * @return VerticalLineEquation 구조체
  */
-VerticalLineEquation select_data_verticalLineEquations(SQLite::Database& db,
-                                                       int index) {
-  VerticalLineEquation verticalLineEquation;
-  try {
-    SQLite::Statement query(
-        db, "SELECT * FROM verticalLineEquations WHERE index = ?");
-    cout << "Prepared SQL for select data vector: " << query.getExpandedSQL()
-         << endl;
-    query.bind(1, index);
-    query.exec();
+VerticalLineEquation select_data_verticalLineEquations(SQLite::Database& db, int index)
+{
+    VerticalLineEquation verticalLineEquation;
+    try
+    {
+        SQLite::Statement query(db, "SELECT * FROM verticalLineEquations WHERE index = ?");
+        cout << "Prepared SQL for select data vector: " << query.getExpandedSQL() << endl;
+        query.bind(1, index);
+        query.exec();
 
-    int indexNum = query.getColumn("indexNum").getInt();
-    double x = query.getColumn("x");
-    double y = query.getColumn("y");
+        int indexNum = query.getColumn("indexNum").getInt();
+        double x = query.getColumn("x");
+        double y = query.getColumn("y");
 
-    verticalLineEquation = {indexNum, x, y};
-
-  } catch (const exception& e) {
-    cerr << "사용자 조회 실패: " << e.what() << endl;
-  }
-  return verticalLineEquation;
+        verticalLineEquation = {indexNum, x, y};
+    }
+    catch (const exception& e)
+    {
+        cerr << "사용자 조회 실패: " << e.what() << endl;
+    }
+    return verticalLineEquation;
 }
 
 /**
@@ -420,28 +455,27 @@ VerticalLineEquation select_data_verticalLineEquations(SQLite::Database& db,
  * @param verticalLineEquation 삽입할 VerticalLineEquation 구조체
  * @return 성공 시 true, 실패 시 false
  */
-bool insert_data_verticalLineEquations(
-    SQLite::Database& db, VerticalLineEquation verticalLineEquation) {
-  try {
-    // SQL 인젝션 방지를 위해 Prepared Statement 사용
-    SQLite::Statement query(
-        db,
-        "INSERT INTO verticalLineEquations (indexNum, a, b) VALUES (?, ?, ?)");
-    query.bind(1, verticalLineEquation.index);
-    query.bind(2, verticalLineEquation.a);
-    query.bind(3, verticalLineEquation.b);
-    cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
-    query.exec();
+bool insert_data_verticalLineEquations(SQLite::Database& db, VerticalLineEquation verticalLineEquation)
+{
+    try
+    {
+        // SQL 인젝션 방지를 위해 Prepared Statement 사용
+        SQLite::Statement query(db, "INSERT INTO verticalLineEquations (indexNum, a, b) VALUES (?, ?, ?)");
+        query.bind(1, verticalLineEquation.index);
+        query.bind(2, verticalLineEquation.a);
+        query.bind(3, verticalLineEquation.b);
+        cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
+        query.exec();
 
-    cout << "데이터 추가: (인덱스: " << verticalLineEquation.index << ")"
-         << endl;
-  } catch (const exception& e) {
-    // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
-    cerr << "데이터 '" << verticalLineEquation.index
-         << "' 추가 실패: " << e.what() << endl;
-    return false;
-  }
-  return true;
+        cout << "데이터 추가: (인덱스: " << verticalLineEquation.index << ")" << endl;
+    }
+    catch (const exception& e)
+    {
+        // 이름이 중복될 경우 (UNIQUE 제약 조건 위반) 오류가 발생할 수 있습니다.
+        cerr << "데이터 '" << verticalLineEquation.index << "' 추가 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -449,37 +483,40 @@ bool insert_data_verticalLineEquations(
  * @param db SQLite 데이터베이스 참조
  * @return 성공 시 true, 실패 시 false
  */
-bool delete_all_data_verticalLineEquations(SQLite::Database& db) {
-  try {
-    SQLite::Statement query(db, "DELETE FROM verticalLineEquations");
-    cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
-    int changes = query.exec();
-    cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes
-         << endl;
-    if (changes == 0) {
-      return false;
+bool delete_all_data_verticalLineEquations(SQLite::Database& db)
+{
+    try
+    {
+        SQLite::Statement query(db, "DELETE FROM verticalLineEquations");
+        cout << "Prepared SQL for delete all: " << query.getExpandedSQL() << endl;
+        int changes = query.exec();
+        cout << "테이블의 모든 데이터를 삭제했습니다. 삭제된 행 수: " << changes << endl;
+        if (changes == 0)
+        {
+            return false;
+        }
     }
-  } catch (const exception& e) {
-    cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
-    return false;
-  }
-  return true;
+    catch (const exception& e)
+    {
+        cerr << "테이블 전체 삭제 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 /**
  * @brief accounts 테이블을 생성합니다.
  * @param db SQLite 데이터베이스 참조
  */
-void create_table_accounts(SQLite::Database& db) {
-  db.exec(
-      "CREATE TABLE IF NOT EXISTS accounts (" 
-      "id TEXT PRIMARY KEY, "
-      "passwd TEXT NOT NULL, "
-      "otp_secret TEXT, "
-      "use_otp INTEGER DEFAULT 0)"
-  );
-  cout << "'accounts' 테이블이 준비되었습니다.\n";
-  return;
+void create_table_accounts(SQLite::Database& db)
+{
+    db.exec("CREATE TABLE IF NOT EXISTS accounts ("
+            "id TEXT PRIMARY KEY, "
+            "passwd TEXT NOT NULL, "
+            "otp_secret TEXT, "
+            "use_otp INTEGER DEFAULT 0)");
+    cout << "'accounts' 테이블이 준비되었습니다.\n";
+    return;
 }
 
 /**
@@ -489,32 +526,35 @@ void create_table_accounts(SQLite::Database& db) {
  * @param passwd 사용자 비밀번호
  * @return Account 포인터 (없으면 nullptr)
  */
-Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
-  cout << "[Debug] select_data_accounts called with ID: " << id << ", Password: " << passwd << endl;
+Account* select_data_accounts(SQLite::Database& db, string id, string passwd)
+{
+    cout << "[Debug] select_data_accounts called with ID: " << id << ", Password: " << passwd << endl;
 
-  Account* account = new Account;
-  try {
-    if (id.empty() || passwd.empty()) {
-      cerr << "[Error] ID 또는 비밀번호가 비어 있습니다." << endl;
-      return nullptr;
+    Account* account = new Account;
+    try
+    {
+        if (id.empty() || passwd.empty())
+        {
+            cerr << "[Error] ID 또는 비밀번호가 비어 있습니다." << endl;
+            return nullptr;
+        }
+
+        SQLite::Statement query(db, "SELECT * FROM accounts WHERE id = ? AND passwd = ?");
+        query.bind(1, id);
+        query.bind(2, passwd);
+
+        string id = query.getColumn("id");
+        string passwd = query.getColumn("passwd");
+
+        account->id = id;
+        account->passwd = passwd;
     }
-
-    SQLite::Statement query(
-        db, "SELECT * FROM accounts WHERE id = ? AND passwd = ?");
-    query.bind(1, id);
-    query.bind(2, passwd);
-
-    string id = query.getColumn("id");
-    string passwd = query.getColumn("passwd");
-
-    account->id = id;
-    account->passwd = passwd;
-
-  } catch (const exception& e) {
-    cerr << "사용자 조회 실패: " << e.what() << endl;
-    return nullptr;
-  }
-  return account;
+    catch (const exception& e)
+    {
+        cerr << "사용자 조회 실패: " << e.what() << endl;
+        return nullptr;
+    }
+    return account;
 }
 
 /**
@@ -523,23 +563,26 @@ Account* select_data_accounts(SQLite::Database& db, string id, string passwd) {
  * @param account 삽입할 Account 구조체
  * @return 성공 시 true, 실패 시 false
  */
-bool insert_data_accounts(SQLite::Database& db, Account account) {
-  try {
-    SQLite::Statement query(
-        db, "INSERT INTO accounts (id, passwd, otp_secret, use_otp) VALUES (?, ?, ?, ?)");
-    query.bind(1, account.id);
-    query.bind(2, account.passwd);
-    query.bind(3, account.otp_secret);
-    query.bind(4, account.use_otp ? 1 : 0);
-    cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
-    query.exec();
+bool insert_data_accounts(SQLite::Database& db, Account account)
+{
+    try
+    {
+        SQLite::Statement query(db, "INSERT INTO accounts (id, passwd, otp_secret, use_otp) VALUES (?, ?, ?, ?)");
+        query.bind(1, account.id);
+        query.bind(2, account.passwd);
+        query.bind(3, account.otp_secret);
+        query.bind(4, account.use_otp ? 1 : 0);
+        cout << "Prepared SQL for insert: " << query.getExpandedSQL() << endl;
+        query.exec();
 
-    cout << "데이터 추가: (id: " << account.id << ")" << endl;
-  } catch (const exception& e) {
-    cerr << "데이터 '" << account.id << "' 추가 실패: " << e.what() << endl;
-    return false;
-  }
-  return true;
+        cout << "데이터 추가: (id: " << account.id << ")" << endl;
+    }
+    catch (const exception& e)
+    {
+        cerr << "데이터 '" << account.id << "' 추가 실패: " << e.what() << endl;
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -548,25 +591,32 @@ bool insert_data_accounts(SQLite::Database& db, Account account) {
  * @param id 사용자 ID
  * @return Account 포인터 (없으면 nullptr)
  */
-Account* get_account_by_id(SQLite::Database& db, const string& id) {
-    try {
+Account* get_account_by_id(SQLite::Database& db, const string& id)
+{
+    try
+    {
         // use_otp도 함께 조회
         SQLite::Statement query(db, "SELECT id, passwd, otp_secret, use_otp FROM accounts WHERE id = ?");
         query.bind(1, id);
 
-        if (query.executeStep()) { // 행이 존재하는 경우 (사용자를 찾음)
+        if (query.executeStep())
+        { // 행이 존재하는 경우 (사용자를 찾음)
             Account* acc = new Account{
-                query.getColumn(0).getString(), // id
+                query.getColumn(0).getString(),  // id
                 query.getColumn(1).getString(),  // passwd (hashed)
-                query.getColumn(2).getString(), // otp_secret
+                query.getColumn(2).getString(),  // otp_secret
                 query.getColumn(3).getInt() == 1 // use_otp
             };
             return acc;
-        } else {
+        }
+        else
+        {
             // 사용자를 찾지 못한 경우
             return nullptr;
         }
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         cerr << "[DB 에러] ID로 계정 조회 중 예외 발생: " << e.what() << endl;
         return nullptr;
     }
@@ -576,13 +626,13 @@ Account* get_account_by_id(SQLite::Database& db, const string& id) {
  * @brief recovery_codes 테이블을 생성합니다.
  * @param db SQLite 데이터베이스 참조
  */
-void create_table_recovery_codes(SQLite::Database& db) {
-    db.exec(
-        "CREATE TABLE IF NOT EXISTS recovery_codes (" 
-        "id TEXT NOT NULL, "
-        "code TEXT NOT NULL, "
-        "used INTEGER DEFAULT 0, "
-        "FOREIGN KEY(id) REFERENCES accounts(id))");
+void create_table_recovery_codes(SQLite::Database& db)
+{
+    db.exec("CREATE TABLE IF NOT EXISTS recovery_codes ("
+            "id TEXT NOT NULL, "
+            "code TEXT NOT NULL, "
+            "used INTEGER DEFAULT 0, "
+            "FOREIGN KEY(id) REFERENCES accounts(id))");
     cout << "'recovery_codes' 테이블이 준비되었습니다.\n";
 }
 
@@ -593,14 +643,18 @@ void create_table_recovery_codes(SQLite::Database& db) {
  * @param secret 저장할 OTP 시크릿
  * @return 성공 시 true, 실패 시 false
  */
-bool store_otp_secret(SQLite::Database& db, const string& id, const string& secret) {
-    try {
+bool store_otp_secret(SQLite::Database& db, const string& id, const string& secret)
+{
+    try
+    {
         SQLite::Statement query(db, "UPDATE accounts SET otp_secret = ? WHERE id = ?");
         query.bind(1, secret);
         query.bind(2, id);
         query.exec();
         return true;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         cerr << "[DB 에러] OTP secret 저장 실패: " << e.what() << endl;
         return false;
     }
@@ -613,11 +667,14 @@ bool store_otp_secret(SQLite::Database& db, const string& id, const string& secr
  * @param codes 저장할 복구 코드 벡터
  * @return 성공 시 true, 실패 시 false
  */
-bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<string>& codes) {
-    try {
+bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<string>& codes)
+{
+    try
+    {
         SQLite::Transaction transaction(db);
         SQLite::Statement query(db, "INSERT INTO recovery_codes (id, code) VALUES (?, ?)");
-        for (const auto& code : codes) {
+        for (const auto& code : codes)
+        {
             query.bind(1, id);
             query.bind(2, code);
             query.exec();
@@ -625,7 +682,9 @@ bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<s
         }
         transaction.commit();
         return true;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         cerr << "[DB 에러] 복구 코드 저장 실패: " << e.what() << endl;
         return false;
     }
@@ -638,17 +697,23 @@ bool store_recovery_codes(SQLite::Database& db, const string& id, const vector<s
  * @param input 입력한 복구 코드
  * @return 일치하면 true, 아니면 false
  */
-bool verify_recovery_code(SQLite::Database& db, const std::string& id, const std::string& input) {
+bool verify_recovery_code(SQLite::Database& db, const std::string& id, const std::string& input)
+{
     // DB에서 해당 id의 해시된 복구 코드 목록을 가져옴
-    try {
+    try
+    {
         std::vector<std::string> hashed_codes = get_hashed_recovery_codes(db, id);
-        for (const auto& hashed : hashed_codes) {
-          if (verify_password(hashed, input)) {
-              return true;
-          }
+        for (const auto& hashed : hashed_codes)
+        {
+            if (verify_password(hashed, input))
+            {
+                return true;
+            }
         }
         return false; // 일치하는 코드가 없음
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         cerr << "[DB 에러] 복구 코드 검증 중 예외 발생: " << e.what() << endl;
         return false;
     }
@@ -661,18 +726,23 @@ bool verify_recovery_code(SQLite::Database& db, const std::string& id, const std
  * @param input_code 입력한 복구 코드
  * @return 성공 시 true, 실패 시 false
  */
-bool invalidate_recovery_code(SQLite::Database& db, const string& id, const string& input_code) {
-    try {
+bool invalidate_recovery_code(SQLite::Database& db, const string& id, const string& input_code)
+{
+    try
+    {
         // 1. 사용자의 모든 미사용 복구 코드(해시) 가져오기
         std::vector<std::string> hashed_codes = get_hashed_recovery_codes(db, id);
         std::string matched_hash;
-        for (const auto& hash : hashed_codes) {
-            if (verify_password(hash, input_code)) {
+        for (const auto& hash : hashed_codes)
+        {
+            if (verify_password(hash, input_code))
+            {
                 matched_hash = hash;
                 break;
             }
         }
-        if (matched_hash.empty()) {
+        if (matched_hash.empty())
+        {
             // 일치하는 코드 없음
             return false;
         }
@@ -682,7 +752,9 @@ bool invalidate_recovery_code(SQLite::Database& db, const string& id, const stri
         query.bind(2, matched_hash);
         int changes = query.exec();
         return changes > 0;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         cerr << "[DB 에러] 복구 코드 무효화 실패: " << e.what() << endl;
         return false;
     }
@@ -694,17 +766,21 @@ bool invalidate_recovery_code(SQLite::Database& db, const string& id, const stri
  * @param id 사용자 ID
  * @return 해시된 복구 코드 문자열 벡터
  */
-std::vector<std::string> get_hashed_recovery_codes(SQLite::Database& db, const std::string& id) {
+std::vector<std::string> get_hashed_recovery_codes(SQLite::Database& db, const std::string& id)
+{
     std::vector<std::string> codes;
-    try {
+    try
+    {
         SQLite::Statement query(db, "SELECT code FROM recovery_codes WHERE id = ? AND used = 0");
         query.bind(1, id);
-        while (query.executeStep()) {
+        while (query.executeStep())
+        {
             codes.push_back(query.getColumn(0).getString());
         }
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         std::cerr << "[DB] get_hashed_recovery_codes 예외: " << e.what() << std::endl;
     }
     return codes;
 }
-

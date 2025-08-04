@@ -6,9 +6,8 @@
 
 #pragma once
 #include <mutex>
-#include <openssl/ssl.h>
 #include <openssl/err.h>
-
+#include <openssl/ssl.h>
 
 /**
  * @brief SSL 송신 시 동기화를 위한 뮤텍스
@@ -19,7 +18,6 @@ extern std::mutex ssl_write_mutex;
  * @brief 전역 SSL 컨텍스트 포인터
  */
 extern SSL_CTX* ssl_ctx;
-
 
 /**
  * @brief OpenSSL 라이브러리 초기화

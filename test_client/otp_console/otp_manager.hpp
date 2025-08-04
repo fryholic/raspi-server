@@ -1,12 +1,13 @@
 #ifndef OTP_MANAGER_HPP
 #define OTP_MANAGER_HPP
 
+#include "cotp/cotp.hpp"
+#include <memory>
 #include <string>
 #include <unordered_map>
-#include <memory>
-#include "cotp/cotp.hpp"
 
-class OTPManager {
+class OTPManager
+{
 private:
     std::unordered_map<std::string, std::unique_ptr<cotp::TOTP>> user_otps;
 

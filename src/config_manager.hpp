@@ -6,18 +6,18 @@
 
 #pragma once
 
-#include <string>
 #include <map>
+#include <string>
 
 using namespace std;
-
 
 /**
  * @brief 서버 설정을 저장하는 구조체
  *
  * .env 및 config.json에서 로드되는 모든 설정값을 포함합니다.
  */
-struct AppConfig {
+struct AppConfig
+{
     /** @brief .env에서 로드되는 사용자 이름 */
     string username;
     /** @brief .env에서 로드되는 비밀번호 */
@@ -57,12 +57,10 @@ struct AppConfig {
     int timeout_ms;
 };
 
-
 /**
  * @brief 전역 설정 인스턴스
  */
 extern AppConfig g_config;
-
 
 /**
  * @brief .env 파일을 읽어서 환경 변수로 설정하고 AppConfig에 값을 저장합니다.

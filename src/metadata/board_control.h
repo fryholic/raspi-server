@@ -5,10 +5,9 @@
  */
 
 #pragma once
-#include <vector>
-#include <string>
 #include <cstdint>
-
+#include <string>
+#include <vector>
 
 /// @def DLE
 /// @brief Data Link Escape (프레임 구분용)
@@ -21,20 +20,19 @@
 #define ETX 0x03
 /// @def ACK
 /// @brief Acknowledge (응답)
-#define ACK  0xAA
+#define ACK 0xAA
 /// @def NACK
 /// @brief Not Acknowledge (부정 응답)
 #define NACK 0x55
 /// @def CMD_LCD_ON
 /// @brief LCD ON 명령 코드
-#define CMD_LCD_ON  0x01
+#define CMD_LCD_ON 0x01
 /// @def CMD_LCD_OFF
 /// @brief LCD OFF 명령 코드
 #define CMD_LCD_OFF 0x02
 /// @def CMD_SYNC_TIME
 /// @brief 시간 동기화 명령 코드
 #define CMD_SYNC_TIME 0x03 // 시간 프레임 추가!
-
 
 /**
  * @brief 8비트 값을 비트 단위로 반전합니다.
@@ -59,12 +57,12 @@ uint16_t crc16(const std::vector<uint8_t>& data);
  */
 uint16_t reverse16(uint16_t val, int bits);
 
-
 /**
  * @class BoardController
  * @brief 보드 제어를 위한 클래스 (시리얼 통신 기반)
  */
-class BoardController {
+class BoardController
+{
 public:
     /**
      * @brief 생성자
@@ -109,7 +107,7 @@ public:
      * @return 성공 시 true, 실패 시 false
      */
     bool send_lcd_off_with_ack(int retries = 3, int timeout_ms = 1000);
-    
+
 private:
     /**
      * @brief 시리얼 포트 파일 디스크립터

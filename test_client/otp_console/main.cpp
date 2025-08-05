@@ -1,10 +1,11 @@
-#include <iostream>
-#include "user_manager.hpp"
 #include "otp_manager.hpp"
+#include "user_manager.hpp"
+#include <iostream>
 
 using namespace std;
 
-void display_menu() {
+void display_menu()
+{
     cout << "\n=== OTP Console Program ===\n";
     cout << "1. Sign Up\n";
     cout << "2. Log In\n";
@@ -12,23 +13,27 @@ void display_menu() {
     cout << "Select an option: ";
 }
 
-int main() {
+int main()
+{
     UserManager user_manager;
     OTPManager otp_manager;
 
-    while (true) {
+    while (true)
+    {
         display_menu();
         int choice;
         cin >> choice;
 
-        if (choice == 1) {
+        if (choice == 1)
+        {
             string id, pw;
             cout << "Enter ID: ";
             cin >> id;
             cout << "Enter Password: ";
             cin >> pw;
 
-            if (user_manager.sign_up(id, pw)) {
+            if (user_manager.sign_up(id, pw))
+            {
                 cout << "Sign-up successful!\n";
 
                 // Generate QR Code for OTP
@@ -43,20 +48,26 @@ int main() {
                 // Generate recovery codes
                 auto recovery_codes = user_manager.generate_recovery_codes(id);
                 cout << "Your recovery codes are:\n";
-                for (const auto& code : recovery_codes) {
+                for (const auto& code : recovery_codes)
+                {
                     cout << code << endl;
                 }
-            } else {
+            }
+            else
+            {
                 cout << "Sign-up failed. User already exists.\n";
             }
-        } else if (choice == 2) {
+        }
+        else if (choice == 2)
+        {
             string id, pw;
             cout << "Enter ID: ";
             cin >> id;
             cout << "Enter Password: ";
             cin >> pw;
 
-            if (user_manager.log_in(id, pw)) {
+            if (user_manager.log_in(id, pw))
+            {
                 cout << "Login successful!\n";
 
                 // OTP or Recovery Code Verification
@@ -64,29 +75,44 @@ int main() {
                 string input;
                 cin >> input;
 
-                if (isdigit(input[0])) {
+                if (isdigit(input[0]))
+                {
                     // Handle OTP
                     int otp = std::stoi(input);
-                    if (otp_manager.verify_otp(id, otp)) {
+                    if (otp_manager.verify_otp(id, otp))
+                    {
                         cout << "OTP verified! Login complete.\n";
-                    } else {
+                    }
+                    else
+                    {
                         cout << "Invalid OTP.\n";
                     }
-                } else {
+                }
+                else
+                {
                     // Handle Recovery Code
-                    if (user_manager.verify_recovery_code(id, input)) {
+                    if (user_manager.verify_recovery_code(id, input))
+                    {
                         cout << "Recovery code verified! Login complete.\n";
-                    } else {
+                    }
+                    else
+                    {
                         cout << "Invalid recovery code.\n";
                     }
                 }
-            } else {
+            }
+            else
+            {
                 cout << "Login failed. Invalid ID or Password.\n";
             }
-        } else if (choice == 3) {
+        }
+        else if (choice == 3)
+        {
             cout << "Exiting program.\n";
             break;
-        } else {
+        }
+        else
+        {
             cout << "Invalid option. Try again.\n";
         }
     }

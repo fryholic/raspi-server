@@ -9,21 +9,19 @@
 
 #pragma once
 
+#include "config_manager.hpp"
+#include "db_management.hpp"
+#include "json.hpp"
 #include <curl/curl.h>
 #include <iostream>
 #include <string>
-#include "json.hpp"
-#include "db_management.hpp"
-#include "config_manager.hpp"
 
 using json = nlohmann::json;
-using std::string;
-using std::cout;
 using std::cerr;
+using std::cout;
 using std::endl;
+using std::string;
 using std::to_string;
-
-
 
 // --- 공통 설정 함수 ---
 /**
@@ -33,7 +31,6 @@ using std::to_string;
  * @return 설정된 헤더 리스트 포인터
  */
 struct curl_slist* setup_common_headers(CURL* curl_handle);
-
 
 /**
  * @brief libcurl의 응답 데이터를 저장하는 콜백 함수
@@ -46,7 +43,6 @@ struct curl_slist* setup_common_headers(CURL* curl_handle);
  */
 
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
-
 
 /**
  * @brief 라인 크로싱 설정 정보를 GET 요청으로 받아옵니다.

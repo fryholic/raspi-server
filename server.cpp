@@ -23,16 +23,17 @@ using namespace std;
  * @details RTSP 서버와 TCP 서버를 각각 별도의 스레드에서 실행합니다.
  *          두 스레드가 모두 종료될 때까지 대기한 후 프로그램을 종료합니다.
  */
-int main(int argc, char *argv[]) {
-  // RTSP 서버를 별도 스레드에서 실행
-  thread rtsp_run_thread(rtsp_run, argc, argv);
+int main(int argc, char* argv[])
+{
+    // RTSP 서버를 별도 스레드에서 실행
+    thread rtsp_run_thread(rtsp_run, argc, argv);
 
-  // TCP 서버를 별도 스레드에서 실행
-  thread tcp_run_thread(tcp_run);
+    // TCP 서버를 별도 스레드에서 실행
+    thread tcp_run_thread(tcp_run);
 
-  // 두 서버 스레드가 모두 종료될 때까지 대기
-  rtsp_run_thread.join();
-  tcp_run_thread.join();
+    // 두 서버 스레드가 모두 종료될 때까지 대기
+    rtsp_run_thread.join();
+    tcp_run_thread.join();
 
-  return 0;
+    return 0;
 }

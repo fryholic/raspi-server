@@ -1,22 +1,22 @@
 /**
  * @file request_handlers.hpp
  * @brief 클라이언트 요청 처리 헤더 파일
- * @details 이 파일은 클라이언트 요청을 처리하는 함수들의 선언을 포함합니다. 데이터베이스 접근, JSON 응답 생성, SSL 통신 등을 지원합니다.
+ * @details 이 파일은 클라이언트 요청을 처리하는 함수들의 선언을 포함합니다. 데이터베이스 접근, JSON 응답 생성, SSL 통신
+ * 등을 지원합니다.
  */
 
 #pragma once
 
-#include <string>
 #include <atomic>
+#include <string>
 #include <thread>
 
+#include "db_management.hpp"
 #include "json.hpp"
 #include "ssl.hpp"
-#include "db_management.hpp"
 
 using namespace std;
 using json = nlohmann::json;
-
 
 /**
  * @brief 감지 데이터 조회 요청을 처리합니다. (request_id == 1)
@@ -70,7 +70,8 @@ void handle_baseline_insert_request(SSL* ssl, const json& received_json, SQLite:
  * @param db SQLite 데이터베이스 참조
  * @param db_mutex DB 접근 뮤텍스
  */
-void handle_vertical_line_insert_request(SSL* ssl, const json& received_json, SQLite::Database& db, std::mutex& db_mutex);
+void handle_vertical_line_insert_request(SSL* ssl, const json& received_json, SQLite::Database& db,
+                                         std::mutex& db_mutex);
 
 /**
  * @brief 도로 기준선 전체 조회 요청을 처리합니다. (request_id == 7)
@@ -79,7 +80,8 @@ void handle_vertical_line_insert_request(SSL* ssl, const json& received_json, SQ
  * @param db SQLite 데이터베이스 참조
  * @param db_mutex DB 접근 뮤텍스
  */
-void handle_baseline_select_all_request(SSL* ssl, const json& received_json, SQLite::Database& db, std::mutex& db_mutex);
+void handle_baseline_select_all_request(SSL* ssl, const json& received_json, SQLite::Database& db,
+                                        std::mutex& db_mutex);
 
 /**
  * @brief 1단계 로그인 요청(ID/PW 검증)을 처리합니다. (request_id == 8)
@@ -115,7 +117,8 @@ void handle_signup_request(SSL* ssl, const json& received_json, SQLite::Database
  * @param push_thread BBox push 스레드 참조
  * @param metadata_thread 메타데이터 파싱 스레드 참조
  */
-void handle_bbox_start_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, std::thread& push_thread, std::thread& metadata_thread);
+void handle_bbox_start_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, std::thread& push_thread,
+                               std::thread& metadata_thread);
 
 /**
  * @brief BBox push 중지 요청을 처리합니다. (request_id == 32)
@@ -124,8 +127,8 @@ void handle_bbox_start_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, s
  * @param push_thread BBox push 스레드 참조
  * @param metadata_thread 메타데이터 파싱 스레드 참조
  */
-void handle_bbox_stop_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, std::thread& push_thread, std::thread& metadata_thread);
-
+void handle_bbox_stop_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, std::thread& push_thread,
+                              std::thread& metadata_thread);
 
 /**
  * @brief JSON 객체를 직렬화하여 SSL을 통해 클라이언트로 전송합니다.

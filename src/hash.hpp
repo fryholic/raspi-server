@@ -1,18 +1,18 @@
 /**
  * @file hash.hpp
  * @brief 비밀번호 및 복구 코드 해싱 헤더 파일
- * @details 이 파일은 Argon2id 알고리즘을 사용하여 비밀번호와 복구 코드를 해싱하고 검증하는 함수의 선언을 포함합니다. 또한 복구 코드를 생성하는 함수도 선언되어 있습니다.
+ * @details 이 파일은 Argon2id 알고리즘을 사용하여 비밀번호와 복구 코드를 해싱하고 검증하는 함수의 선언을 포함합니다.
+ * 또한 복구 코드를 생성하는 함수도 선언되어 있습니다.
  */
 
 #include <iostream>
+#include <random>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
-#include <random>
 
 // Argon2 해싱을 위한 라이브러리
 #include <sodium.h>
-
 
 using namespace std;
 

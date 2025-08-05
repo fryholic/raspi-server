@@ -16,10 +16,9 @@
 
 using namespace std;
 
-
 /**
  * @brief RTSP 서버를 실행합니다. (GStreamer 기반)
  * @param argc 인자 개수
  * @param argv 인자 배열
  */
-void rtsp_run(int argc, char *argv[]);
+void rtsp_run(int argc, char* argv[]);

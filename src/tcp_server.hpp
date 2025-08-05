@@ -11,27 +11,27 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdint>  // uint32_t
+#include <cstdint> // uint32_t
 #include <ctime>
 #include <iomanip>
-#include <iostream>  // 표준 입출력 (std::cout, std::cerr)
+#include <iostream> // 표준 입출력 (std::cout, std::cerr)
 #include <mutex>
-#include <string>  // 문자열 처리 (std::string)
+#include <string> // 문자열 처리 (std::string)
 #include <thread>
-#include <vector>  // 동적 배열 (std::vector, 여기서는 사용되지 않지만 이전 컨텍스트에서 포함됨)
+#include <vector> // 동적 배열 (std::vector, 여기서는 사용되지 않지만 이전 컨텍스트에서 포함됨)
 
 // POSIX 소켓 API 관련 헤더
-#include <arpa/inet.h>  // inet_ntoa
+#include <arpa/inet.h> // inet_ntoa
 #include <curl/curl.h>
-#include <netinet/in.h>  // sockaddr_in
-#include <sys/socket.h>  // socket, bind, listen, accept
-#include <unistd.h>      // close
+#include <netinet/in.h> // sockaddr_in
+#include <sys/socket.h> // socket, bind, listen, accept
+#include <unistd.h>     // close
 
 // 오류 처리를 위한 추가 헤더
-#include <cerrno>   // errno
-#include <cstring>  // memset, strerror
+#include <cerrno>  // errno
+#include <cstring> // memset, strerror
 #include <stdexcept>
-#include <system_error>  // strerror
+#include <system_error> // strerror
 
 // json 처리를 위한 외부 헤더파일
 #include "json.hpp"
@@ -165,7 +165,8 @@ void handle_baseline_insert_request(SSL* ssl, const json& received_json, SQLite:
  * @param db SQLite 데이터베이스 참조
  * @param db_mutex DB 접근 뮤텍스
  */
-void handle_vertical_line_insert_request(SSL* ssl, const json& received_json, SQLite::Database& db, std::mutex& db_mutex);
+void handle_vertical_line_insert_request(SSL* ssl, const json& received_json, SQLite::Database& db,
+                                         std::mutex& db_mutex);
 
 /**
  * @brief 도로 기준선 전체 조회 요청을 처리합니다. (request_id == 7)
@@ -174,7 +175,8 @@ void handle_vertical_line_insert_request(SSL* ssl, const json& received_json, SQ
  * @param db SQLite 데이터베이스 참조
  * @param db_mutex DB 접근 뮤텍스
  */
-void handle_baseline_select_all_request(SSL* ssl, const json& received_json, SQLite::Database& db, std::mutex& db_mutex);
+void handle_baseline_select_all_request(SSL* ssl, const json& received_json, SQLite::Database& db,
+                                        std::mutex& db_mutex);
 
 /**
  * @brief 1단계 로그인 요청(ID/PW 검증)을 처리합니다. (request_id == 8)
@@ -210,7 +212,8 @@ void handle_signup_request(SSL* ssl, const json& received_json, SQLite::Database
  * @param push_thread BBox push 스레드 참조
  * @param metadata_thread 메타데이터 파싱 스레드 참조
  */
-void handle_bbox_start_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, std::thread& push_thread, std::thread& metadata_thread);
+void handle_bbox_start_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, std::thread& push_thread,
+                               std::thread& metadata_thread);
 
 /**
  * @brief BBox push 중지 요청을 처리합니다. (request_id == 32)
@@ -219,7 +222,8 @@ void handle_bbox_start_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, s
  * @param push_thread BBox push 스레드 참조
  * @param metadata_thread 메타데이터 파싱 스레드 참조
  */
-void handle_bbox_stop_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, std::thread& push_thread, std::thread& metadata_thread);
+void handle_bbox_stop_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, std::thread& push_thread,
+                              std::thread& metadata_thread);
 
 // ==================== 요청 라우터 및 정리 함수들 ====================
 /**
@@ -232,7 +236,7 @@ void handle_bbox_stop_request(SSL* ssl, std::atomic<bool>& bbox_push_enabled, st
  * @param push_thread BBox push 스레드 참조
  * @param metadata_thread 메타데이터 파싱 스레드 참조
  */
-void route_request(SSL* ssl, const json& received_json, SQLite::Database& db, std::mutex& db_mutex, 
+void route_request(SSL* ssl, const json& received_json, SQLite::Database& db, std::mutex& db_mutex,
                    std::atomic<bool>& bbox_push_enabled, std::thread& push_thread, std::thread& metadata_thread);
 
 /**
@@ -243,7 +247,7 @@ void route_request(SSL* ssl, const json& received_json, SQLite::Database& db, st
  * @param push_thread BBox push 스레드 참조
  * @param metadata_thread 메타데이터 파싱 스레드 참조
  */
-void cleanup_client_connection(SSL* ssl, int client_socket, std::atomic<bool>& bbox_push_enabled, 
+void cleanup_client_connection(SSL* ssl, int client_socket, std::atomic<bool>& bbox_push_enabled,
                                std::thread& push_thread, std::thread& metadata_thread);
 
 // ==================== 메인 클라이언트 처리 함수 ====================

@@ -5,9 +5,11 @@
 #include <unordered_map>
 #include <vector>
 
-class UserManager {
+class UserManager
+{
 private:
-    struct User {
+    struct User
+    {
         std::string password;
         std::vector<std::string> recovery_codes;
     };

@@ -28,7 +28,6 @@ sudo apt install -y \
 ```
 
 
-
 컴파일 시에 SQLite 관련 에러가 발생할 수 있습니다. 그 경우에는 직접 SQLite를 빌드하여 사용하는 것을 권장합니다.
 
 ```bash
